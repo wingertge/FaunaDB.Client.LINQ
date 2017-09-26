@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.26730.16
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FaunaDB.Client.LINQ", "FaunaDB.Client.LINQ\FaunaDB.Client.LINQ.csproj", "{A1B345B8-BC89-494A-A1F3-61FAB6CFFD5F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FaunaDB.Client.LINQ.Tests", "FaunaDB.Client.LINQ.Tests\FaunaDB.Client.LINQ.Tests.csproj", "{D69AA96F-385F-46B1-AF07-1B0E1027ABD2}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A1B345B8-BC89-494A-A1F3-61FAB6CFFD5F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1B345B8-BC89-494A-A1F3-61FAB6CFFD5F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1B345B8-BC89-494A-A1F3-61FAB6CFFD5F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A1B345B8-BC89-494A-A1F3-61FAB6CFFD5F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D69AA96F-385F-46B1-AF07-1B0E1027ABD2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D69AA96F-385F-46B1-AF07-1B0E1027ABD2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D69AA96F-385F-46B1-AF07-1B0E1027ABD2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D69AA96F-385F-46B1-AF07-1B0E1027ABD2}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {670CBE24-B40F-440A-AA6A-559F6A3FBB42}
+	EndGlobalSection
+EndGlobal
