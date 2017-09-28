@@ -175,5 +175,40 @@ namespace FaunaDB.Client.LINQ.Tests
 
             Assert.IsTrue(lastQuery.Equals(manual));
         }
+
+        [TestMethod]
+        public void UpsertCompositeIndexWithArgsTest()
+        {
+            IsolationUtils.FakeClient(UpsertCompositeIndexWithArgsTest_Run);
+        }
+
+        private static void UpsertCompositeIndexWithArgsTest_Run(IFaunaClient client, ref Expr lastQuery)
+        {
+            var model = new ReferenceModel { Indexed1 = "test1", Indexed2 = "test2" };
+            var q = client.Upsert(model, a => a.CompositeIndex, "test1", "test2");
+
+            var matchExpr = Match(Index("composite_index"), "test1", "test2");
+            var manual = If(Exists(matchExpr), Map(matchExpr, a => Update(a, model.ToFaunaObj())), Create(model.GetClassRef(), model.ToFaunaObj()));
+
+            Assert.IsTrue(lastQuery.Equals(manual));
+        }
+
+        [TestMethod]
+        public void UpsertBooleanExpressionTest()
+        {
+            IsolationUtils.FakeClient(UpsertBooleanExpressionTest_Run);
+        }
+
+        private static void UpsertBooleanExpressionTest_Run(IFaunaClient client, ref Expr lastQuery)
+        {
+            var model = new ReferenceModel { Indexed1 = "test1", Indexed2 = "test2" };
+            var q = client.Upsert(model, a => a.Indexed1 == "test1");
+
+            var matchExpr = Match(Index("index_1"), "test1");
+            var manual = If(Exists(matchExpr), Map(matchExpr, a => Update(a, model.ToFaunaObj())),
+                Create(model.GetClassRef(), model.ToFaunaObj()));
+
+            Assert.IsTrue(lastQuery.Equals(manual));
+        }
     }
 }
