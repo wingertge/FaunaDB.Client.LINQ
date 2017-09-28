@@ -8,7 +8,7 @@ using FaunaDB.Types;
 
 namespace FaunaDB.Extensions
 {
-    public static class FaunaExtensions
+    public static class SerializationExtensions
     {
         public static Expr ToFaunaObj(this object obj)
         {
@@ -20,13 +20,13 @@ namespace FaunaDB.Extensions
                 var propValue = prop.GetValue(obj);
                 var propName = prop.GetFaunaFieldName().Replace("data.", "");
                 if (propName == "@ref" || propName == "ts") continue;
+                if (propValue == null) fields[propName] = Language.Null();
                 switch (Type.GetTypeCode(propType))
                 {
                     case TypeCode.Byte:
                     case TypeCode.SByte:
                     case TypeCode.UInt16:
                     case TypeCode.UInt32:
-                    case TypeCode.UInt64:
                     case TypeCode.Int16:
                     case TypeCode.Int32:
                     case TypeCode.Int64:
@@ -36,6 +36,9 @@ namespace FaunaDB.Extensions
                     case TypeCode.String:
                     case TypeCode.Boolean:
                         fields[propName] = (dynamic) propValue;
+                        continue;
+                    case TypeCode.UInt64:
+                        fields[propName] = (ulong) propValue;
                         continue;
                     case TypeCode.Object:
                         var referenceAttr = prop.GetCustomAttribute(typeof(ReferenceAttribute));
