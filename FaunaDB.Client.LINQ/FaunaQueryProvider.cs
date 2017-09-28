@@ -10,10 +10,10 @@ namespace FaunaDB.Extensions
 {
     public class FaunaQueryProvider : IQueryProvider
     {
-        private readonly FaunaClient _client;
+        private readonly IFaunaClient _client;
         internal readonly Expr _selector; //internal for testing
 
-        public FaunaQueryProvider(FaunaClient client, Expr selector)
+        public FaunaQueryProvider(IFaunaClient client, Expr selector)
         {
             _client = client;
             _selector = selector;

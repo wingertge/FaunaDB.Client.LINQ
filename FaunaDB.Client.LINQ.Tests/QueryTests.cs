@@ -18,7 +18,7 @@ namespace FaunaDB.Client.LINQ.Tests
             IsolationUtils.FakeClient(SimplePaginateTest_Run);
         }
 
-        private static void SimplePaginateTest_Run(FaunaClient client, ref Expr lastQuery)
+        private static void SimplePaginateTest_Run(IFaunaClient client, ref Expr lastQuery)
         {
             var q = client.Query<ReferenceModel>(a => a.Indexed1 == "test1").Paginate(size: 5);
             var manual = Paginate(Map(Match(Index("index_1"), "test1"), arg0 => Get(arg0)), size: 5);
@@ -34,7 +34,7 @@ namespace FaunaDB.Client.LINQ.Tests
             IsolationUtils.FakeClient(FromRefPaginateTest_Run);
         }
 
-        private static void FromRefPaginateTest_Run(FaunaClient client, ref Expr lastQuery)
+        private static void FromRefPaginateTest_Run(IFaunaClient client, ref Expr lastQuery)
         {
             var q = client.Query<ReferenceModel>(a => a.Indexed1 == "test1").Paginate(size: 5, fromRef: "testRef");
             var manual = Paginate(Map(Match(Index("index_1"), "test1"), arg0 => Get(arg0)), size: 5, after: Ref("testRef"));
@@ -50,7 +50,7 @@ namespace FaunaDB.Client.LINQ.Tests
             IsolationUtils.FakeClient(SortDirectionPaginateTest_Run);
         }
 
-        private static void SortDirectionPaginateTest_Run(FaunaClient client, ref Expr lastQuery)
+        private static void SortDirectionPaginateTest_Run(IFaunaClient client, ref Expr lastQuery)
         {
             var q = client.Query<ReferenceModel>(a => a.Indexed1 == "test1").Paginate(size: 5, fromRef: "testRef",
                 sortDirection: ListSortDirection.Descending);
@@ -68,7 +68,7 @@ namespace FaunaDB.Client.LINQ.Tests
             IsolationUtils.FakeClient(DateTimePaginateTest_Run);
         }
 
-        private static void DateTimePaginateTest_Run(FaunaClient client, ref Expr lastQuery)
+        private static void DateTimePaginateTest_Run(IFaunaClient client, ref Expr lastQuery)
         {
             var q = client.Query<ReferenceModel>(a => a.Indexed1 == "test1").Paginate(size: 5, timeStamp: new DateTime(2017, 1, 1));
 
@@ -85,7 +85,7 @@ namespace FaunaDB.Client.LINQ.Tests
             IsolationUtils.FakeClient(AllOptionsPaginateTest_Run);
         }
 
-        private static void AllOptionsPaginateTest_Run(FaunaClient client, ref Expr lastQuery)
+        private static void AllOptionsPaginateTest_Run(IFaunaClient client, ref Expr lastQuery)
         {
             var q = client.Query<ReferenceModel>(a => a.Indexed1 == "test1").Paginate(size: 5, timeStamp: new DateTime(2017, 1, 1), fromRef: "testRef", sortDirection: ListSortDirection.Descending);
 
@@ -102,7 +102,7 @@ namespace FaunaDB.Client.LINQ.Tests
             IsolationUtils.FakeClient(CatchAllWhereTest_Run);
         }
 
-        private static void CatchAllWhereTest_Run(FaunaClient client, ref Expr lastQuery)
+        private static void CatchAllWhereTest_Run(IFaunaClient client, ref Expr lastQuery)
         {
             var i1 = 1;
             var i2 = 2;
@@ -140,7 +140,7 @@ namespace FaunaDB.Client.LINQ.Tests
             IsolationUtils.FakeClient(SelectStringConcatTest_Run);
         }
 
-        private static void SelectStringConcatTest_Run(FaunaClient client, ref Expr lastQuery)
+        private static void SelectStringConcatTest_Run(IFaunaClient client, ref Expr lastQuery)
         {
             var q = client.Query<ReferenceModel>(a => a.Indexed1 == "test1").Select(a => a.Indexed1 + "concat");
 
@@ -158,7 +158,7 @@ namespace FaunaDB.Client.LINQ.Tests
             IsolationUtils.FakeClient(MemberInitTest_Run);
         }
 
-        private static void MemberInitTest_Run(FaunaClient client, ref Expr lastQuery)
+        private static void MemberInitTest_Run(IFaunaClient client, ref Expr lastQuery)
         {
             var q = client.Query<ReferenceModel>(a => a.Indexed1 == "test1").Where(a => a == new ReferenceModel {Indexed1 = "test1"});
             var manual = Filter(Map(Match(Index("index_1"), "test1"), arg0 => Get(arg0)), arg1 => EqualsFn(arg1, Obj("indexed1", "test1", "Indexed2", Null())));

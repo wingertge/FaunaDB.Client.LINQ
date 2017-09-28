@@ -19,7 +19,8 @@ namespace FaunaDB.Extensions
                 : new[] { obj.ToFaunaObjOrPrimitive() };
         }
 
-        public static IQueryable<T> Query<T>(this FaunaClient client, Expression<Func<T, bool>> selector)
+        public static IQueryable<T> Query<T>(this FaunaClient client, Expression<Func<T, bool>> selector) => Query(new FaunaClientProxy(client), selector);
+        public static IQueryable<T> Query<T>(this IFaunaClient client, Expression<Func<T, bool>> selector)
         {
             if (!(selector.Body is BinaryExpression binary)) throw new ArgumentException("Index selector must be binary expression.");
 
@@ -69,8 +70,8 @@ namespace FaunaDB.Extensions
             throw new ArgumentException("Invalid format for selector. Has to be tree of index selector operations.");
         }
 
-        public static IQueryable<T> Query<T>(this FaunaClient client, Expression<Func<T, object>> index,
-            params Expr[] args)
+        public static IQueryable<T> Query<T>(this FaunaClient client, Expression<Func<T, object>> index, params Expr[] args) => Query(new FaunaClientProxy(client), index, args);
+        public static IQueryable<T> Query<T>(this IFaunaClient client, Expression<Func<T, object>> index, params Expr[] args)
         {
             if(!(index.Body is MemberExpression member)) throw new ArgumentException("Index selector must be a member.");
 
@@ -82,17 +83,20 @@ namespace FaunaDB.Extensions
             return client.Query<T>(indexName, args);
         }
 
-        public static IQueryable<T> Query<T>(this FaunaClient client, string index, params Expr[] args)
+        public static IQueryable<T> Query<T>(this FaunaClient client, string index, params Expr[] args) => Query<T>(new FaunaClientProxy(client), index, args);
+        public static IQueryable<T> Query<T>(this IFaunaClient client, string index, params Expr[] args)
         {
             return new FaunaQueryableData<T>(client, Map(Match(Index(index), args), arg0 => Language.Get(arg0)));
         }
 
-        public static IQueryable<T> Query<T>(this FaunaClient client, string @ref)
+        public static IQueryable<T> Query<T>(this FaunaClient client, string @ref) => Query<T>(new FaunaClientProxy(client), @ref);
+        public static IQueryable<T> Query<T>(this IFaunaClient client, string @ref)
         {
             return new FaunaQueryableData<T>(client, Language.Get(Ref(@ref)));
         }
 
-        public static async Task<T> Create<T>(this FaunaClient client, T obj)
+        public static Task<T> Create<T>(this FaunaClient client, T obj) => Create(new FaunaClientProxy(client), obj);
+        public static async Task<T> Create<T>(this IFaunaClient client, T obj)
         {
             var objType = obj.GetType();
             var className = string.Concat(objType.Name.Select((x, i) => i > 0 && char.IsUpper(x) ? "_" + x.ToString() : x.ToString())).ToLower();
@@ -100,23 +104,27 @@ namespace FaunaDB.Extensions
             return obj is IReferenceType ? result.To<T>().Value : result.To<FaunaResult<T>>().Value.Data;
         }
 
-        public static Task<T> Update<T>(this FaunaClient client, T obj) where T : IReferenceType
+        public static Task<T> Update<T>(this FaunaClient client, T obj) where T : IReferenceType => Update(new FaunaClientProxy(client), obj);
+        public static Task<T> Update<T>(this IFaunaClient client, T obj) where T : IReferenceType
         {
             return client.Update(obj, obj.Id);
         }
 
-        public static async Task<T> Update<T>(this FaunaClient client, T obj, string id)
+        public static Task<T> Update<T>(this FaunaClient client, T obj, string id) => Update(new FaunaClientProxy(client), obj, id);
+        public static async Task<T> Update<T>(this IFaunaClient client, T obj, string id)
         {
             var result = await client.Query(Language.Update(Ref(id), obj.ToFaunaObj()));
             return obj is IReferenceType ? result.To<T>().Value : result.To<FaunaResult<T>>().Value.Data;
         }
 
-        public static Task<T> Upsert<T>(this FaunaClient client, T obj) where T : IReferenceType
+        public static Task<T> Upsert<T>(this FaunaClient client, T obj) where T : IReferenceType => Upsert(new FaunaClientProxy(client), obj);
+        public static Task<T> Upsert<T>(this IFaunaClient client, T obj) where T : IReferenceType
         {
             return client.Upsert(obj, obj.Id);
         }
 
-        public static async Task<T> Upsert<T>(this FaunaClient client, T obj, string id)
+        public static Task<T> Upsert<T>(this FaunaClient client, T obj, string id) => Upsert(new FaunaClientProxy(client), obj, id);
+        public static async Task<T> Upsert<T>(this IFaunaClient client, T obj, string id)
         {
             var objType = obj.GetType();
             var className = string.Concat(objType.Name.Select((x, i) => i > 0 && char.IsUpper(x) ? "_" + x.ToString() : x.ToString())).ToLower();
@@ -126,17 +134,20 @@ namespace FaunaDB.Extensions
             return obj is IReferenceType ? result.To<T>().Value : result.To<FaunaResult<T>>().Value.Data;
         }
 
-        public static Task Delete(this FaunaClient client, IReferenceType obj)
+        public static Task Delete(this FaunaClient client, IReferenceType obj) => Delete(new FaunaClientProxy(client), obj);
+        public static Task Delete(this IFaunaClient client, IReferenceType obj)
         {
             return client.Delete(obj.Id);
         }
 
-        public static Task Delete(this FaunaClient client, string id)
+        public static Task Delete(this FaunaClient client, string id) => Delete(new FaunaClientProxy(client), id);
+        public static Task Delete(this IFaunaClient client, string id)
         {
             return client.Query(Language.Delete(Ref(id)));
         }
 
-        public static async Task<T> Get<T>(this FaunaClient client, string @ref)
+        public static Task<T> Get<T>(this FaunaClient client, string @ref) => Get<T>(new FaunaClientProxy(client), @ref);
+        public static async Task<T> Get<T>(this IFaunaClient client, string @ref)
         {
             var result = await client.Query(Language.Get(Ref(@ref)));
             return typeof(IReferenceType).IsAssignableFrom(typeof(T))

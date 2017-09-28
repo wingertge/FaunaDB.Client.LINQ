@@ -1,8 +1,6 @@
 using System;
-using FaunaDB.Client.Fakes;
 using FaunaDB.Extensions;
 using FaunaDB.Query;
-using Microsoft.QualityTools.Testing.Fakes;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using static FaunaDB.Query.Language;
 
@@ -17,7 +15,7 @@ namespace FaunaDB.Client.LINQ.Tests
             IsolationUtils.FakeClient(CompositeWithArgsTest_Run);
         }
 
-        private static void CompositeWithArgsTest_Run(FaunaClient client, ref Expr lastQuery)
+        private static void CompositeWithArgsTest_Run(IFaunaClient client, ref Expr lastQuery)
         {
             var q = client.Query<ReferenceModel>(a => a.CompositeIndex, "test1", "test2");
 
@@ -35,7 +33,7 @@ namespace FaunaDB.Client.LINQ.Tests
             IsolationUtils.FakeClient(CompositeWithTupleTest_Run);
         }
 
-        private static void CompositeWithTupleTest_Run(FaunaClient client, ref Expr lastQuery)
+        private static void CompositeWithTupleTest_Run(IFaunaClient client, ref Expr lastQuery)
         {
             var q = client.Query<ReferenceModel>(a => a.CompositeIndex == Tuple.Create("test1", "test2"));
 
@@ -51,7 +49,7 @@ namespace FaunaDB.Client.LINQ.Tests
             IsolationUtils.FakeClient(SingleBooleanSelectorTest_Run);
         }
 
-        private static void SingleBooleanSelectorTest_Run(FaunaClient client, ref Expr lastQuery)
+        private static void SingleBooleanSelectorTest_Run(IFaunaClient client, ref Expr lastQuery)
         {
             var q = client.Query<ReferenceModel>(a => a.Indexed1 == "test2");
             q.Provider.Execute<object>(q.Expression);
@@ -67,7 +65,7 @@ namespace FaunaDB.Client.LINQ.Tests
             IsolationUtils.FakeClient(MultiSelectorTest_Run);
         }
 
-        private static void MultiSelectorTest_Run(FaunaClient client, ref Expr lastQuery)
+        private static void MultiSelectorTest_Run(IFaunaClient client, ref Expr lastQuery)
         {
             var q1 = client.Query<ReferenceModel>(a => a.Indexed1 == "test1" && a.Indexed2 == "test2");
             var q2 = client.Query<ReferenceModel>(a => a.Indexed1 == "test1" || a.Indexed2 == "test2");
@@ -88,7 +86,7 @@ namespace FaunaDB.Client.LINQ.Tests
             IsolationUtils.FakeClient(RefQueryTest_Run);
         }
 
-        private static void RefQueryTest_Run(FaunaClient client, ref Expr lastQuery)
+        private static void RefQueryTest_Run(IFaunaClient client, ref Expr lastQuery)
         {
             var q = client.Query<ReferenceModel>("ref1");
 
@@ -104,7 +102,7 @@ namespace FaunaDB.Client.LINQ.Tests
             IsolationUtils.FakeClient(CreateTest_Run);
         }
 
-        private static void CreateTest_Run(FaunaClient client, ref Expr lastQuery)
+        private static void CreateTest_Run(IFaunaClient client, ref Expr lastQuery)
         {
             var model = new ReferenceModel {Indexed1 = "test1", Indexed2 = "test2"};
             var q = client.Create(model).Result;
@@ -120,7 +118,7 @@ namespace FaunaDB.Client.LINQ.Tests
             IsolationUtils.FakeClient(UpdateTest_Run);
         }
 
-        private static void UpdateTest_Run(FaunaClient client, ref Expr lastQuery)
+        private static void UpdateTest_Run(IFaunaClient client, ref Expr lastQuery)
         {
             var model = new ReferenceModel {Id = "testId", Indexed1 = "test1", Indexed2 = "test2"};
             var q = client.Update(model).Result;
@@ -136,7 +134,7 @@ namespace FaunaDB.Client.LINQ.Tests
             IsolationUtils.FakeClient(UpsertTest_Run);
         }
 
-        private static void UpsertTest_Run(FaunaClient client, ref Expr lastQuery)
+        private static void UpsertTest_Run(IFaunaClient client, ref Expr lastQuery)
         {
             var model = new ReferenceModel { Id = "testId", Indexed1 = "test1", Indexed2 = "test2" };
             var q = client.Upsert(model);
@@ -153,7 +151,7 @@ namespace FaunaDB.Client.LINQ.Tests
             IsolationUtils.FakeClient(DeleteTest_Run);
         }
 
-        private static void DeleteTest_Run(FaunaClient client, ref Expr lastQuery)
+        private static void DeleteTest_Run(IFaunaClient client, ref Expr lastQuery)
         {
             var model = new ReferenceModel { Id = "testId", Indexed1 = "test1", Indexed2 = "test2" };
             var q = client.Delete(model);
@@ -169,7 +167,7 @@ namespace FaunaDB.Client.LINQ.Tests
             IsolationUtils.FakeClient(GetTest_Run);   
         }
 
-        private static void GetTest_Run(FaunaClient client, ref Expr lastQuery)
+        private static void GetTest_Run(IFaunaClient client, ref Expr lastQuery)
         {
             var q = client.Get<ReferenceModel>("test1");
 
