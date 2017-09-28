@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -44,6 +45,16 @@ namespace FaunaDB.Extensions
         internal static Expr GetFaunaFieldPath(this PropertyInfo propInfo)
         {
             return Language.Arr(GetFaunaFieldName(propInfo).Split('.').ToExprArray());
+        }
+
+        internal static Expr GetClass(this object obj)
+        {
+            return Language.Class(string.Concat(obj.GetType().Name.Select((x, i) => i > 0 && char.IsUpper(x) ? "_" + x.ToString() : x.ToString())).ToLower());
+        }
+
+        internal static Expr GetClassRef(this object obj)
+        {
+            return Language.Ref(GetClass(obj), 1);
         }
     }
 }

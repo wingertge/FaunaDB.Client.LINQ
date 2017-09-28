@@ -98,9 +98,7 @@ namespace FaunaDB.Extensions
         public static Task<T> Create<T>(this FaunaClient client, T obj) => Create(new FaunaClientProxy(client), obj);
         public static async Task<T> Create<T>(this IFaunaClient client, T obj)
         {
-            var objType = obj.GetType();
-            var className = string.Concat(objType.Name.Select((x, i) => i > 0 && char.IsUpper(x) ? "_" + x.ToString() : x.ToString())).ToLower();
-            var result = await client.Query(Language.Create(Ref(Class(className), 1), Obj("data", obj.ToFaunaObj())));
+            var result = await client.Query(Language.Create(obj.GetClassRef(), Obj("data", obj.ToFaunaObj())));
             return obj is IReferenceType ? result.To<T>().Value : result.To<FaunaResult<T>>().Value.Data;
         }
 
@@ -126,11 +124,44 @@ namespace FaunaDB.Extensions
         public static Task<T> Upsert<T>(this FaunaClient client, T obj, string id) => Upsert(new FaunaClientProxy(client), obj, id);
         public static async Task<T> Upsert<T>(this IFaunaClient client, T obj, string id)
         {
-            var objType = obj.GetType();
-            var className = string.Concat(objType.Name.Select((x, i) => i > 0 && char.IsUpper(x) ? "_" + x.ToString() : x.ToString())).ToLower();
             var result = await client.Query(If(Exists(id),
                 Language.Update(id, obj.ToFaunaObj()),
-                Language.Create(Ref(Class(className), 1), obj.ToFaunaObj())));
+                Language.Create(obj.GetClassRef(), obj.ToFaunaObj())));
+            return obj is IReferenceType ? result.To<T>().Value : result.To<FaunaResult<T>>().Value.Data;
+        }
+
+        public static Task<T> Upsert<T>(this FaunaClient client, T obj, string index, params Expr[] args) => Upsert(new FaunaClientProxy(client), obj, index, args);
+        public static async Task<T> Upsert<T>(this IFaunaClient client, T obj, string index, params Expr[] args)
+        {
+            var result = await client.Query(If(Exists(Match(Index(index), args)),
+                Map(Match(Index(index), args), a => Language.Update(a, obj.ToFaunaObj())),
+                Language.Create(obj.GetClassRef(), obj.ToFaunaObj())));
+
+            return obj is IReferenceType ? result.To<T>().Value : result.To<FaunaResult<T>>().Value.Data;
+        }
+
+        public static Task<T> Upsert<T>(this FaunaClient client, T obj, Expression<Func<T, object>> indexSelector, params Expr[] args) => Upsert(new FaunaClientProxy(client), obj, indexSelector, args);
+        public static Task<T> Upsert<T>(this IFaunaClient client, T obj, Expression<Func<T, object>> indexSelector, params Expr[] args)
+        {
+            if (!(indexSelector.Body is MemberExpression member)) throw new ArgumentException("Index selector must be a member.");
+
+            var propInfo = member.GetPropertyInfo();
+            var indexAttr = propInfo.GetCustomAttribute<IndexedAttribute>();
+            if (indexAttr == null) throw new ArgumentException("Can't use unindexed property as selector!", nameof(indexSelector));
+            var indexName = indexAttr.Name;
+
+            return Upsert(client, obj, indexName, args);
+        }
+
+        public static Task<T> Upsert<T>(this FaunaClient client, T obj, Expression<Func<T, bool>> indices) => Upsert(new FaunaClientProxy(client), obj, indices);
+        public static async Task<T> Upsert<T>(this IFaunaClient client, T obj, Expression<Func<T, bool>> indices)
+        {
+            if (!(indices.Body is BinaryExpression binary)) throw new ArgumentException("Index selector must be binary expression.");
+            var selectorExpr = WalkSelector(binary);
+
+            var result = await client.Query(If(Exists(selectorExpr), Map(selectorExpr, a => Language.Update(a, obj.ToFaunaObj())),
+                Language.Create(obj.GetClassRef(), obj.ToFaunaObj())));
+
             return obj is IReferenceType ? result.To<T>().Value : result.To<FaunaResult<T>>().Value.Data;
         }
 
