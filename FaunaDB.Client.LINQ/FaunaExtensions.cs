@@ -95,11 +95,5 @@ namespace FaunaDB.Extensions
                     throw new ArgumentOutOfRangeException();
             }
         }
-
-        private static bool IsPrimitive(this object obj)
-        {
-            var type = obj.GetType();
-            return type.IsPrimitive || type == typeof(decimal) || type == typeof(string);
-        }
     }
 }
