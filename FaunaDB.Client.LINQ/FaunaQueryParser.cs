@@ -166,7 +166,7 @@ namespace FaunaDB.Extensions
                     }
                 case BlockExpression block:
                     return Do(block.Expressions.Select(a => WalkComplexExpression(a, varName)).ToArray());
-                case ConditionalExpression conditional: //TODO: Fix ternaries
+                case ConditionalExpression conditional:
                     return If(WalkComplexExpression(conditional.Test, varName),
                         WalkComplexExpression(conditional.IfTrue, varName),
                         WalkComplexExpression(conditional.IfFalse, varName));
