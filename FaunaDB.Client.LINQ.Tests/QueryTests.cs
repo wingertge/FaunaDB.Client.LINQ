@@ -167,5 +167,25 @@ namespace FaunaDB.Client.LINQ.Tests
 
             Assert.IsTrue(lastQuery.Equals(manual));
         }
+
+        [TestMethod]
+        public void ChainedQueryTest()
+        {
+            IsolationUtils.FakeClient(ChainedQueryTest_Run);
+        }
+
+        public static void ChainedQueryTest_Run(IFaunaClient client, ref Expr lastQuery)
+        {
+            var q = client.Query<ReferenceModel>(a => a.Indexed1 == "test1").Where(a => a.Indexed1 == "test1").Select(a => a.Indexed1);
+
+            var selectorManual = Map(Match(Index("index_1"), "test1"), arg0 => Get(arg0));
+            var filterManual = Filter(selectorManual, arg1 => EqualsFn(Select(Arr("data", "indexed1"), arg1), "test1"));
+            var selectManual = Map(filterManual, arg2 => Select(Arr("data", "indexed1"), arg2));
+            var manual = selectManual;
+
+            q.Provider.Execute<object>(q.Expression);
+
+            Assert.IsTrue(manual.Equals(lastQuery));
+        }
     }
 }
