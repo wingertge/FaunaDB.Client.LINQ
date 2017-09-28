@@ -18,8 +18,7 @@ namespace FaunaDB.Extensions
                 var propType = prop.PropertyType;
                 if(propType.Name.StartsWith("CompositeIndex")) continue;
                 var propValue = prop.GetValue(obj);
-                var nameAttr = prop.GetCustomAttribute(typeof(FaunaFieldAttribute)) as FaunaFieldAttribute;
-                var propName = nameAttr?.Name?.Replace("data.", "") ?? prop.Name;
+                var propName = prop.GetFaunaFieldName().Replace("data.", "");
                 if (propName == "@ref" || propName == "ts") continue;
                 switch (Type.GetTypeCode(propType))
                 {
@@ -55,7 +54,7 @@ namespace FaunaDB.Extensions
                         fields[propName] = propValue.ToString();
                         continue;
                     case TypeCode.DateTime:
-                        fields[propName] = ((DateTime)propValue).ToUnixTimeStamp();
+                        fields[propName] = Language.Time(((DateTime) propValue).ToString("O"));
                         continue;
                     default:
                         throw new ArgumentOutOfRangeException();
@@ -67,6 +66,7 @@ namespace FaunaDB.Extensions
 
         internal static Expr ToFaunaObjOrPrimitive(this object obj)
         {
+            if (obj == null) return Language.Null();
             switch (Type.GetTypeCode(obj.GetType()))
             {
                 case TypeCode.Object:
@@ -90,7 +90,7 @@ namespace FaunaDB.Extensions
                 case TypeCode.Char:
                     return obj.ToString();
                 case TypeCode.DateTime:
-                    return ((DateTime)obj).ToUnixTimeStamp(); ;
+                    return Language.Time(((DateTime)obj).ToString("O"));
                 default:
                     throw new ArgumentOutOfRangeException();
             }

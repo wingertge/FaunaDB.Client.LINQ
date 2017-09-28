@@ -23,7 +23,7 @@ namespace FaunaDB.Extensions
         {
             if (!(selector.Body is BinaryExpression binary)) throw new ArgumentException("Index selector must be binary expression.");
 
-            return new FaunaQueryableData<T>(client, Map(WalkSelector(binary), @ref => Language.Get(@ref)));
+            return new FaunaQueryableData<T>(client, Map(WalkSelector(binary), arg0 => Language.Get(arg0)));
         }
 
         private static Expr WalkSelector(BinaryExpression expression)
@@ -84,7 +84,7 @@ namespace FaunaDB.Extensions
 
         public static IQueryable<T> Query<T>(this FaunaClient client, string index, params Expr[] args)
         {
-            return new FaunaQueryableData<T>(client, Map(Match(Index(index), args), @ref => Language.Get(@ref)));
+            return new FaunaQueryableData<T>(client, Map(Match(Index(index), args), arg0 => Language.Get(arg0)));
         }
 
         public static IQueryable<T> Query<T>(this FaunaClient client, string @ref)

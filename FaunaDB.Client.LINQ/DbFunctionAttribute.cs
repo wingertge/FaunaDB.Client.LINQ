@@ -14,5 +14,11 @@ namespace FaunaDB.Extensions
         /// </summary>
         /// <value>The database function name.</value>
         public string Name { get; set; }
+
+        public DbFunctionAttribute() { }
+        public DbFunctionAttribute(string name)
+        {
+            Name = name;
+        }
     }
 }

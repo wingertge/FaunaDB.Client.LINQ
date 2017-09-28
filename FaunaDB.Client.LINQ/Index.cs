@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Deployment.Internal;
-using FaunaDB.Query;
 
 namespace FaunaDB.Extensions
 {
@@ -9,6 +7,19 @@ namespace FaunaDB.Extensions
     {
         public Type TargetType { get; set; }
         public string Name { get; set; }
+
+        public IndexedAttribute() { }
+
+        public IndexedAttribute(string name)
+        {
+            Name = name;
+        }
+
+        public IndexedAttribute(string name, Type targetType)
+        {
+            Name = name;
+            TargetType = targetType;
+        }
     }
 
     /// <summary>
@@ -16,6 +27,7 @@ namespace FaunaDB.Extensions
     /// </summary>
     /// <typeparam name="T1">The type of the first composite parameter.</typeparam>
     /// <typeparam name="T2">The type of the second composite parameter.</typeparam>
+#pragma warning disable 660,661
     public class CompositeIndex<T1, T2> : Tuple<T1, T2>, IEquatable<ValueTuple<T1, T2>>
     {
         public CompositeIndex(T1 item1, T2 item2) : base(item1, item2) {}
@@ -115,4 +127,5 @@ namespace FaunaDB.Extensions
             return !(index == other);
         }
     }
+#pragma warning restore 660, 661
 }

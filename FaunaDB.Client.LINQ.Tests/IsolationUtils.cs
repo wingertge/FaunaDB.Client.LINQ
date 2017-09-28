@@ -1,13 +1,10 @@
-﻿using System;
-using System.Reflection;
-using System.Runtime.Remoting.Messaging;
+﻿using System.Reflection;
 using System.Threading.Tasks;
 using FaunaDB.Client.Fakes;
 using FaunaDB.Query;
 using FaunaDB.Types;
 using FaunaDB.Types.Fakes;
 using Microsoft.QualityTools.Testing.Fakes;
-using Telerik.JustMock;
 
 namespace FaunaDB.Client.LINQ.Tests
 {

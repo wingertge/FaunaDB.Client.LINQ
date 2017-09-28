@@ -14,10 +14,10 @@ namespace FaunaDB.Extensions
         internal static readonly MethodInfo PaginateMethodInfo =
             typeof(QueryableExtensions).GetTypeInfo().GetDeclaredMethod(nameof(Paginate));
 
-        public static IQueryable<T> Paginate<T>(this IQueryable<T> source, string fromRef = null,
-            ListSortDirection sortDirection = ListSortDirection.Ascending, int size = 16, DateTime? timeStamp = null)
+        public static IQueryable<T> Paginate<T>(this IQueryable<T> source, string fromRef = "",
+            ListSortDirection sortDirection = ListSortDirection.Ascending, int size = 16, DateTime timeStamp = default(DateTime))
         {
-            return new FaunaQueryableData<T>(source.Provider, Expression.Call(
+            return source.Provider.CreateQuery<T>(Expression.Call(
                 instance: null,
                 method: PaginateMethodInfo.MakeGenericMethod(typeof(T)),
                 arguments: new [] {

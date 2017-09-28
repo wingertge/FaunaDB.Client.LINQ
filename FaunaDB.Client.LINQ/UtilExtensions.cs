@@ -2,6 +2,7 @@
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using FaunaDB.Query;
 using FaunaDB.Types;
 
 [assembly:InternalsVisibleTo("FaunaDB.Client.LINQ.Tests")]
@@ -33,11 +34,16 @@ namespace FaunaDB.Extensions
         internal static string GetFaunaFieldName(this PropertyInfo propInfo)
         {
             var nameAttr = propInfo.GetCustomAttribute<FaunaFieldAttribute>();
-            var attrName = typeof(IReferenceType).IsAssignableFrom(propInfo.PropertyType)
+            var attrName = typeof(IReferenceType).IsAssignableFrom(propInfo.DeclaringType)
                 ? nameAttr?.Name
                 : $"data.{nameAttr?.Name}";
-            var propName = attrName ?? $"data.{propInfo.Name}";
+            var propName = nameAttr != null ? attrName : $"data.{propInfo.Name}";
             return propName;
+        }
+
+        internal static Expr GetFaunaFieldPath(this PropertyInfo propInfo)
+        {
+            return Language.Arr(GetFaunaFieldName(propInfo).Split('.').ToExprArray());
         }
     }
 }
