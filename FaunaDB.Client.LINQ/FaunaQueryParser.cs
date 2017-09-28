@@ -24,7 +24,8 @@ namespace FaunaDB.Extensions
 
         private static readonly Dictionary<(Type, string), Func<Expr[], Expr>> BuiltInFunctions = new Dictionary<(Type, string), Func<Expr[], Expr>>
         {
-            { (typeof(string), "Concat"), (args) => Concat(Arr(args)) }
+            { (typeof(string), "Concat"), args => Concat(Arr(args)) },
+            { (typeof(Tuple), "Create"), Arr }
         };
 
         public static Expr[] ToExprArray<T>(this IEnumerable<T> collection) => collection.Select(a => (Expr)((dynamic)a)).ToArray();
