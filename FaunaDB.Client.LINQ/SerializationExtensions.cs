@@ -19,7 +19,7 @@ namespace FaunaDB.Extensions
                 if(propType.Name.StartsWith("CompositeIndex")) continue;
                 var propValue = prop.GetValue(obj);
                 var propName = prop.GetFaunaFieldName().Replace("data.", "");
-                if (propName == "@ref" || propName == "ts") continue;
+                if (propName == "ref" || propName == "ts") continue;
                 if (propValue == null) fields[propName] = Language.Null();
                 switch (Type.GetTypeCode(propType))
                 {

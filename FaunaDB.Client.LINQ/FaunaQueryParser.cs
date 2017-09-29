@@ -6,7 +6,6 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using FaunaDB.Query;
-using FaunaDB.Types;
 using static FaunaDB.Query.Language;
 
 namespace FaunaDB.Extensions
@@ -66,6 +65,10 @@ namespace FaunaDB.Extensions
                 case "Take":
                     current = Take(args[0].GetConstantValue<int>(), rest);
                     break;
+                case "Include":
+                case "AlsoInclude":
+                    current = HandleInclude(args, rest);
+                    break;
                 case "FromQuery":
                     current = (Expr) ((ConstantExpression) args[0]).Value;
                     break;
@@ -77,6 +80,35 @@ namespace FaunaDB.Extensions
             }
 
             return current;
+        }
+
+        private static Expr HandleInclude(IReadOnlyList<Expression> args, Expr rest)
+        {
+            var lambdaArgName = $"arg{++_lambdaIndex}";
+            var lambda = (LambdaExpression)args[0];
+            if(!(lambda.Body is MemberExpression)) throw new ArgumentException("Selector must be member expression.");
+            var memberExpr = (MemberExpression) lambda.Body;
+            if(!(memberExpr.Member is PropertyInfo)) throw new ArgumentException("Selector must be property.");
+            var propInfo = (PropertyInfo) memberExpr.Member;
+            var definingType = propInfo.DeclaringType;
+
+            var fields = definingType.GetProperties().Where(a => a.GetFaunaFieldName() != "ref" && a.GetFaunaFieldName() != "ts")
+                .ToDictionary(a => a.GetFaunaFieldName().Replace("data.", ""),
+                    a =>
+                    {
+                        var fieldSelector = Select(a.GetFaunaFieldPath(), Var(lambdaArgName));
+                        return a.Name == propInfo.Name
+                            ? typeof(IEnumerable).IsAssignableFrom(propInfo.PropertyType)
+                                ? Map(fieldSelector,
+                                    Lambda($"arg{++_lambdaIndex}",
+                                        If(Exists(Var($"arg{_lambdaIndex}")), Get(Var($"arg{_lambdaIndex}")), Null())))
+                                : If(Exists(fieldSelector), Get(fieldSelector), Null()) //perform safe include
+                            : fieldSelector;
+                    });
+
+            var mappedObj = Obj("ref", Select("ref", Var(lambdaArgName)), "ts", Select("ts", Var(lambdaArgName)), "data", Obj(fields));
+
+            return Map(rest, Lambda(lambdaArgName, mappedObj));
         }
 
         private static Expr HandlePaginate(IReadOnlyList<Expression> args, Expr rest)

@@ -36,4 +36,10 @@ namespace FaunaDB.Extensions
             Expression = expression;
         }
     }
+
+    public class FaunaQueryableData<TData, TCurrent> : FaunaQueryableData<TData>, IIncludeQuery<TData, TCurrent> {
+        public FaunaQueryableData(IFaunaClient client, Expr selector) : base(client, selector) { }
+
+        public FaunaQueryableData(IQueryProvider provider, Expression expression) : base(provider, expression) { }
+    }
 }

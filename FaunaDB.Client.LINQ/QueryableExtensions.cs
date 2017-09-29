@@ -30,6 +30,32 @@ namespace FaunaDB.Extensions
             ));
         }
 
+        internal static readonly MethodInfo IncludeMethodInfo =
+            typeof(QueryableExtensions).GetTypeInfo().GetDeclaredMethod(nameof(Include));
+
+        public static IIncludeQuery<T, TSelected> Include<T, TSelected>(this IQueryable<T> source, Expression<Func<T, TSelected>> selector)
+        {
+            return new FaunaQueryableData<T, TSelected>(source.Provider, Expression.Call(
+                instance: null,
+                method: IncludeMethodInfo.MakeGenericMethod(typeof(T), typeof(TSelected)),
+                arg0: source.Expression,
+                arg1: selector
+            ));
+        }
+
+        internal static readonly MethodInfo AlsoIncludeMethodInfo =
+            typeof(QueryableExtensions).GetTypeInfo().GetDeclaredMethod(nameof(AlsoInclude));
+
+        public static IIncludeQuery<TOrigin, TSelected> AlsoInclude<TOrigin, TCurrent, TSelected>(this IIncludeQuery<TOrigin, TCurrent> source, Expression<Func<TCurrent, TSelected>> selector)
+        {
+            return new FaunaQueryableData<TOrigin, TSelected>(source.Provider, Expression.Call(
+                instance: null,
+                method: AlsoIncludeMethodInfo.MakeGenericMethod(typeof(TOrigin), typeof(TCurrent), typeof(TSelected)),
+                arg0: source.Expression,
+                arg1: selector
+            ));
+        }
+
         internal static readonly MethodInfo FromQueryMethodInfo =
             typeof(QueryableExtensions).GetTypeInfo().GetDeclaredMethod(nameof(FromQuery));
 
