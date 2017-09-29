@@ -61,5 +61,10 @@ namespace FaunaDB.Extensions
         {
             return Language.Ref(GetClass(obj), 1);
         }
+
+        internal static T GetConstantValue<T>(this Expression expression)
+        {
+            return (T) ((ConstantExpression) expression).Value;
+        }
     }
 }

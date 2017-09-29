@@ -60,6 +60,18 @@ namespace FaunaDB.Extensions
                 case "Paginate":
                     current = HandlePaginate(args, rest);
                     break;
+                case "Skip":
+                    current = Drop(args[0].GetConstantValue<int>(), rest);
+                    break;
+                case "Take":
+                    current = Take(args[0].GetConstantValue<int>(), rest);
+                    break;
+                case "FromQuery":
+                    current = (Expr) ((ConstantExpression) args[0]).Value;
+                    break;
+                case "At":
+                    current = At(((DateTime) ((ConstantExpression) args[0]).Value).ToFaunaObjOrPrimitive(), rest);
+                    break;
                 default:
                     throw new ArgumentException($"Unsupported method {method}.");
             }

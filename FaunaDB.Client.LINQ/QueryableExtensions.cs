@@ -30,6 +30,32 @@ namespace FaunaDB.Extensions
             ));
         }
 
+        internal static readonly MethodInfo FromQueryMethodInfo =
+            typeof(QueryableExtensions).GetTypeInfo().GetDeclaredMethod(nameof(FromQuery));
+
+        public static IQueryable<TOut> FromQuery<TIn, TOut>(this IQueryable<TIn> source, Expression query)
+        {
+            return source.Provider.CreateQuery<TOut>(Expression.Call(
+                instance: null,
+                method: FromQueryMethodInfo.MakeGenericMethod(typeof(TIn), typeof(TOut)),
+                arg0: source.Expression,
+                arg1: Expression.Constant(query)
+            ));
+        }
+
+        internal static readonly MethodInfo AtMethodInfo =
+            typeof(QueryableExtensions).GetTypeInfo().GetDeclaredMethod(nameof(At));
+
+        public static IQueryable<T> At<T>(this IQueryable<T> source, DateTime timeStamp)
+        {
+            return source.Provider.CreateQuery<T>(Expression.Call(
+                instance: null,
+                method: FromQueryMethodInfo.MakeGenericMethod(typeof(T)),
+                arg0: source.Expression,
+                arg1: Expression.Constant(timeStamp)
+            ));
+        }
+
         public static async Task<T> FirstOrDefaultAsync<T>(this IQueryable<T> source)
         {
             var result = await ExecuteAsync<T, IEnumerable<T>>(source.Paginate(size: 1).GetAll());
