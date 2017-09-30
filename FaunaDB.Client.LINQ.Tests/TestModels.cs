@@ -7,22 +7,22 @@ namespace FaunaDB.Client.LINQ.Tests
 {
     public class ReferenceModel : IReferenceType
     {
-        [FaunaField("@ref")]
+        [FaunaField("ref")]
         public string Id { get; set; }
-        [FaunaField("data.indexed1"), Indexed("index_1")]
+        [Indexed("index_1")]
         public string Indexed1 { get; set; }
         [Indexed("index_2")]
         public string Indexed2 { get; set; }
         [FaunaField("ts")]
         public DateTime TimeStamp { get; set; }
 
-        [Indexed(Name = "composite_index")]
+        [Indexed("composite_index")]
         public CompositeIndex<string, string> CompositeIndex { get; set; } 
     }
 
     public class PrimitivesReferenceModel : IReferenceType
     {
-        [FaunaField("@ref")]
+        [FaunaField("ref")]
         public string Id { get; set; }
         public string StringVal { get; set; }
         public int IntVal { get; set; }
@@ -42,7 +42,7 @@ namespace FaunaDB.Client.LINQ.Tests
 
     public class ValueTypesReferenceModel : IReferenceType
     {
-        [FaunaField("@ref")]
+        [FaunaField("ref")]
         public string Id { get; set; }
 
         public ValueModel ValueModel { get; set; }
@@ -52,7 +52,7 @@ namespace FaunaDB.Client.LINQ.Tests
 
     public class ReferenceTypesReferenceModel : IReferenceType
     {
-        [FaunaField("@ref")]
+        [FaunaField("ref")]
         public string Id { get; set; }
 
         [Reference]
