@@ -38,7 +38,7 @@ namespace FaunaDB.Extensions
             var attrName = typeof(IReferenceType).IsAssignableFrom(propInfo.DeclaringType)
                 ? nameAttr?.Name
                 : $"data.{nameAttr?.Name}";
-            var propName = nameAttr != null ? attrName : $"data.{propInfo.Name.ToLowerUnderscored()}";
+            var propName = nameAttr != null ? attrName : $"data.{propInfo.Name}";
             return propName;
         }
 
