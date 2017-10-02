@@ -3,10 +3,12 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading.Tasks;
-using FaunaDB.Client;
-using static FaunaDB.Extensions.Language;
+using FaunaDB.LINQ.Client;
+using FaunaDB.LINQ.Errors;
+using FaunaDB.LINQ.Query;
+using FaunaDB.LINQ.Types;
 
-namespace FaunaDB.Extensions
+namespace FaunaDB.LINQ.Extensions
 {
     public static class FaunaClientExtensions
     {
@@ -17,12 +19,11 @@ namespace FaunaDB.Extensions
                 : new[] { obj.ToFaunaObjOrPrimitive() };
         }
 
-        public static IQueryable<T> Query<T>(this Client.FaunaClient client, Expression<Func<T, bool>> selector) => Query(new FaunaClientProxy(client), selector);
         public static IQueryable<T> Query<T>(this IFaunaClient client, Expression<Func<T, bool>> selector)
         {
             if (!(selector.Body is BinaryExpression binary)) throw new ArgumentException("Index selector must be binary expression.");
 
-            return new FaunaQueryableData<T>(client, Map(WalkSelector(binary), Lambda("arg0", Language.Get(Var("arg0")))));
+            return new FaunaQueryableData<T>(client, Language.Map(WalkSelector(binary), Language.Lambda("arg0", Language.Get(Language.Var("arg0")))));
         }
 
         private static object WalkSelector(BinaryExpression expression)
@@ -37,10 +38,10 @@ namespace FaunaDB.Extensions
                     {
                         case ExpressionType.Or:
                         case ExpressionType.OrElse:
-                            return Union(left, right);
+                            return Language.Union(left, right);
                         case ExpressionType.And:
                         case ExpressionType.AndAlso:
-                            return Intersection(left, right);
+                            return Language.Intersection(left, right);
                         default:
                             throw new UnsupportedMethodException(expression.NodeType.ToString());
                     }
@@ -52,7 +53,7 @@ namespace FaunaDB.Extensions
                     var indexAttr = member.GetPropertyInfo().GetCustomAttribute<IndexedAttribute>();
                     if(indexAttr == null) throw new ArgumentException("Can't use unindexed property for selector!");
                     var indexName = indexAttr.Name;
-                    return Match(Index(indexName), args);
+                    return Language.Match(Language.Index(indexName), args);
                 case MemberExpression _ when expression.Right is MethodCallExpression:
                 case MethodCallExpression _ when expression.Right is MemberExpression:
                     var member1 = expression.Left is MemberExpression mem1 ? mem1 : (MemberExpression)expression.Right;
@@ -62,13 +63,12 @@ namespace FaunaDB.Extensions
                     var indexAttr1 = member1.GetPropertyInfo().GetCustomAttribute<IndexedAttribute>();
                     if (indexAttr1 == null) throw new ArgumentException("Can't use unindexed property for selector!");
                     var indexName1 = indexAttr1.Name;
-                    return Match(Index(indexName1), args1);
+                    return Language.Match(Language.Index(indexName1), args1);
             }
 
             throw new ArgumentException("Invalid format for selector. Has to be tree of index selector operations.");
         }
 
-        public static IQueryable<T> Query<T>(this Client.FaunaClient client, Expression<Func<T, object>> index, params object[] args) => Query(new FaunaClientProxy(client), index, args);
         public static IQueryable<T> Query<T>(this IFaunaClient client, Expression<Func<T, object>> index, params object[] args)
         {
             if(!(index.Body is MemberExpression member)) throw new ArgumentException("Index selector must be a member.");
@@ -81,59 +81,50 @@ namespace FaunaDB.Extensions
             return client.Query<T>(indexName, args);
         }
 
-        public static IQueryable<T> Query<T>(this Client.FaunaClient client, string index, params object[] args) => Query<T>(new FaunaClientProxy(client), index, args);
         public static IQueryable<T> Query<T>(this IFaunaClient client, string index, params object[] args)
         {
-            return new FaunaQueryableData<T>(client, Map(Match(Index(index), args), Lambda("arg0", Language.Get(Var("arg0")))));
+            return new FaunaQueryableData<T>(client, Language.Map(Language.Match(Language.Index(index), args), Language.Lambda("arg0", Language.Get(Language.Var("arg0")))));
         }
 
-        public static IQueryable<T> Query<T>(this Client.FaunaClient client, string @ref) => Query<T>(new FaunaClientProxy(client), @ref);
         public static IQueryable<T> Query<T>(this IFaunaClient client, string @ref)
         {
-            return new FaunaQueryableData<T>(client, Language.Get(Ref(@ref)));
+            return new FaunaQueryableData<T>(client, Language.Get(Language.Ref(@ref)));
         }
 
-        public static Task<T> Create<T>(this Client.FaunaClient client, T obj) => Create(new FaunaClientProxy(client), obj);
         public static Task<T> Create<T>(this IFaunaClient client, T obj)
         {
-            return client.Query<T>(Language.Create(obj.GetClassRef(), Obj("data", obj.ToFaunaObj())));
+            return client.Query<T>(Language.Create(obj.GetClassRef(), Language.Obj("data", obj.ToFaunaObj())));
         }
 
-        public static Task<T> Update<T>(this Client.FaunaClient client, T obj) where T : IReferenceType => Update(new FaunaClientProxy(client), obj);
         public static Task<T> Update<T>(this IFaunaClient client, T obj) where T : IReferenceType
         {
             return client.Update(obj, obj.Id);
         }
 
-        public static Task<T> Update<T>(this Client.FaunaClient client, T obj, string id) => Update(new FaunaClientProxy(client), obj, id);
         public static Task<T> Update<T>(this IFaunaClient client, T obj, string id)
         {
-            return client.Query<T>(Language.Update(Ref(id), obj.ToFaunaObj()));
+            return client.Query<T>(Language.Update(Language.Ref(id), obj.ToFaunaObj()));
         }
 
-        public static Task<T> Upsert<T>(this Client.FaunaClient client, T obj) where T : IReferenceType => Upsert(new FaunaClientProxy(client), obj);
         public static Task<T> Upsert<T>(this IFaunaClient client, T obj) where T : IReferenceType
         {
             return client.Upsert(obj, obj.Id);
         }
 
-        public static Task<T> Upsert<T>(this Client.FaunaClient client, T obj, string id) => Upsert(new FaunaClientProxy(client), obj, id);
         public static Task<T> Upsert<T>(this IFaunaClient client, T obj, string id)
         {
-            return client.Query<T>(If(Exist(id),
-                Language.Update(id, obj.ToFaunaObj()),
+            return client.Query<T>(Language.If(Language.Exists(Language.Ref(id)),
+                Language.Update(Language.Ref(id), obj.ToFaunaObj()),
                 Language.Create(obj.GetClassRef(), obj.ToFaunaObj())));
         }
 
-        public static Task<T> Upsert<T>(this Client.FaunaClient client, T obj, string index, params object[] args) => Upsert(new FaunaClientProxy(client), obj, index, args);
         public static Task<T> Upsert<T>(this IFaunaClient client, T obj, string index, params object[] args)
         {
-            return client.Query<T>(If(Exist(Match(Index(index), args)),
-                Map(Match(Index(index), args), Lambda("arg0", Language.Update(Var("arg0"), obj.ToFaunaObj()))),
+            return client.Query<T>(Language.If(Language.Exists(Language.Match(Language.Index(index), args)),
+                Language.Map(Language.Match(Language.Index(index), args), Language.Lambda("arg0", Language.Update(Language.Var("arg0"), obj.ToFaunaObj()))),
                 Language.Create(obj.GetClassRef(), obj.ToFaunaObj())));
         }
 
-        public static Task<T> Upsert<T>(this Client.FaunaClient client, T obj, Expression<Func<T, object>> indexSelector, params object[] args) => Upsert(new FaunaClientProxy(client), obj, indexSelector, args);
         public static Task<T> Upsert<T>(this IFaunaClient client, T obj, Expression<Func<T, object>> indexSelector, params object[] args)
         {
             if (!(indexSelector.Body is MemberExpression member)) throw new ArgumentException("Index selector must be a member.");
@@ -146,32 +137,28 @@ namespace FaunaDB.Extensions
             return Upsert(client, obj, indexName, args);
         }
 
-        public static Task<T> Upsert<T>(this Client.FaunaClient client, T obj, Expression<Func<T, bool>> indices) => Upsert(new FaunaClientProxy(client), obj, indices);
         public static Task<T> Upsert<T>(this IFaunaClient client, T obj, Expression<Func<T, bool>> indices)
         {
             if (!(indices.Body is BinaryExpression binary)) throw new ArgumentException("Index selector must be binary expression.");
             var selectorExpr = WalkSelector(binary);
 
-            return client.Query<T>(If(Exist(selectorExpr), Map(selectorExpr, Lambda("a", Language.Update(Var("a"), obj.ToFaunaObj()))),
+            return client.Query<T>(Language.If(Language.Exists(selectorExpr), Language.Map(selectorExpr, Language.Lambda("arg0", Language.Update(Language.Var("arg0"), obj.ToFaunaObj()))),
                 Language.Create(obj.GetClassRef(), obj.ToFaunaObj())));
         }
 
-        public static Task Delete(this Client.FaunaClient client, IReferenceType obj) => Delete(new FaunaClientProxy(client), obj);
         public static Task Delete(this IFaunaClient client, IReferenceType obj)
         {
             return client.Delete(obj.Id);
         }
 
-        public static Task Delete(this Client.FaunaClient client, string id) => Delete(new FaunaClientProxy(client), id);
         public static Task Delete(this IFaunaClient client, string id)
         {
-            return client.Query(Language.Delete(Ref(id)));
+            return client.Query<object>(Language.Delete(Language.Ref(id)));
         }
 
-        public static Task<T> Get<T>(this Client.FaunaClient client, string @ref) => Get<T>(new FaunaClientProxy(client), @ref);
         public static Task<T> Get<T>(this IFaunaClient client, string @ref)
         {
-            return client.Query<T>(Language.Get(Ref(@ref)));
+            return client.Query<T>(Language.Get(Language.Ref(@ref)));
         }
     }
 }

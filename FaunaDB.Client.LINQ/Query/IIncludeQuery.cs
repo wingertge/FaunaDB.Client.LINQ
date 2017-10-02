@@ -1,6 +1,6 @@
 ﻿using System.Linq;
 
-namespace FaunaDB.Extensions
+namespace FaunaDB.LINQ.Query
 {
     public interface IIncludeQuery<out TQuery, TSelected> : IQueryable<TQuery>
     {

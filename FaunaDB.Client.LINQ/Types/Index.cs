@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace FaunaDB.Extensions
+namespace FaunaDB.LINQ.Types
 {
     [AttributeUsage(AttributeTargets.Property)]
     public class IndexedAttribute : Attribute

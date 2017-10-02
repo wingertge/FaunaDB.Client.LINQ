@@ -3,10 +3,13 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using FaunaDB.Client;
+using FaunaDB.LINQ.Client;
+using FaunaDB.LINQ.Modeling;
+using FaunaDB.LINQ.Query;
+using FaunaDB.LINQ.Types;
 using Newtonsoft.Json.Linq;
 
-namespace FaunaDB.Extensions
+namespace FaunaDB.LINQ.Extensions
 {
     public static class SerializationExtensions
     {
@@ -35,7 +38,7 @@ namespace FaunaDB.Extensions
                     case TypeCode.Single:
                     case TypeCode.String:
                     case TypeCode.Boolean:
-                        fields[propName] = (dynamic) propValue;
+                        fields[propName] = propValue;
                         continue;
                     case TypeCode.UInt64:
                         fields[propName] = (ulong) propValue;
@@ -69,7 +72,7 @@ namespace FaunaDB.Extensions
 
         public static T Decode<T>(this RequestResult request)
         {
-            return (T) Decode(request.RequestContent, typeof(T));
+            return (T) Decode(request.ResponseContent, typeof(T));
         }
 
         public static dynamic Decode(this JToken value, Type type)

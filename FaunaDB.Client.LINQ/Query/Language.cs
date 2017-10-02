@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using Newtonsoft.Json;
 
-namespace FaunaDB.Extensions
+namespace FaunaDB.LINQ.Query
 {
     public class Expr { }
     public static class Language
@@ -111,7 +111,6 @@ namespace FaunaDB.Extensions
                 If = @if;
                 Then = then;
                 Else = @else;
-                throw new System.NotImplementedException();
             }
         }
 
@@ -198,7 +197,7 @@ namespace FaunaDB.Extensions
             }
         }
 
-        public static Expr Map(object lambda, object from)
+        public static Expr Map(object from, object lambda)
         {
             return new MapO(lambda, from);
         }
@@ -232,7 +231,7 @@ namespace FaunaDB.Extensions
             }
         }
 
-        public static Expr Filter(object lambda, object collection)
+        public static Expr Filter(object collection, object lambda)
         {
             return new FilterO(lambda, collection);
         }
@@ -362,19 +361,19 @@ namespace FaunaDB.Extensions
             }
         }
 
-        public static Expr Exist(object @ref, object ts = null)
+        public static Expr Exists(object @ref, object ts = null)
         {
             return new ExistO(@ref, ts);
         }
 
         public class ExistO : Expr
         {
-            public object Exist { get; set; }
+            public object Exists { get; set; }
             public object Ts { get; set; }
 
-            public ExistO(object exist, object ts)
+            public ExistO(object exists, object ts)
             {
-                Exist = exist;
+                Exists = exists;
                 Ts = ts;
             }
         }
@@ -578,6 +577,23 @@ namespace FaunaDB.Extensions
             public CreateFunctionO(object createFunction)
             {
                 CreateFunction = createFunction;
+            }
+        }
+
+        public static Expr Match(object indexRef, object term)
+        {
+            return new MatchO2(indexRef, term);
+        }
+
+        public class MatchO2 : Expr
+        {
+            public object Match { get; }
+            public object Term { get; }
+
+            public MatchO2(object match, object term)
+            {
+                Match = match;
+                Term = term;
             }
         }
 

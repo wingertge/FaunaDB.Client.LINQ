@@ -3,15 +3,14 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading.Tasks;
-using FaunaDB.Client;
-using FaunaDB.Query;
+using FaunaDB.LINQ.Client;
 
-namespace FaunaDB.Extensions
+namespace FaunaDB.LINQ.Query
 {
     public class FaunaQueryProvider : IQueryProvider
     {
         private readonly IFaunaClient _client;
-        internal readonly object _selector; //internal for testing
+        private readonly object _selector;
 
         public FaunaQueryProvider(IFaunaClient client, object selector)
         {

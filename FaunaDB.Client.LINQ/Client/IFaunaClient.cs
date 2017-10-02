@@ -1,10 +1,10 @@
 ﻿using System.Threading.Tasks;
+using FaunaDB.LINQ.Query;
 
-namespace FaunaDB.Extensions
+namespace FaunaDB.LINQ.Client
 {
     public interface IFaunaClient
     {
-        Task<object> Query(Expr query);
         Task<T> Query<T>(Expr query);
     }
 }

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -8,10 +7,8 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
-using System.Web;
-using FaunaDB.Client;
 
-namespace FaunaDB.Extensions
+namespace FaunaDB.LINQ.Client
 {
     public class DefaultClientIO : IClientIO
     {
@@ -43,32 +40,32 @@ namespace FaunaDB.Extensions
             return new DefaultClientIO(_client, secret);
         }
 
-        public Task<RequestResult> DoRequest(HttpMethodKind method, string path, string data, IReadOnlyDictionary<string, string> query = null)
+        public Task<RequestResult> DoRequest(HttpMethod method, string path, string data, IReadOnlyDictionary<string, string> query = null)
         {
             return DoRequestAsync(method, path, data, query);
         }
 
-        private async Task<RequestResult> DoRequestAsync(HttpMethodKind method, string path, string data, IReadOnlyDictionary<string, string> query = null)
+        private async Task<RequestResult> DoRequestAsync(HttpMethod method, string path, string data, IReadOnlyDictionary<string, string> query = null)
         {
             var stringContent = data == null ? null : new StringContent(data);
             var str = query == null ? null : QueryString(query);
             if (str != null)
                 path = $"{path}?{str}";
             var startTime = DateTime.UtcNow;
-            var httpResponse = await this._client.SendAsync(new HttpRequestMessage(new HttpMethod(method.Name()), path)
+            var httpResponse = await this._client.SendAsync(new HttpRequestMessage(method, path)
             {
                 Content = stringContent,
-                Headers = {
-          Authorization = new AuthenticationHeaderValue("Basic", this._authHeader)
-        }
-            }).ConfigureAwait(false);
+                Headers =
+                {
+                    Authorization = new AuthenticationHeaderValue("Basic", _authHeader)
+                }
+            });
             var contentEncoding = httpResponse.Content.Headers.ContentEncoding;
-            var func = (Func<string, bool>)(encoding => encoding == "gzip");
             string responseContent;
-            if (contentEncoding.Any(func))
-                responseContent = await DecompressGZip(httpResponse.Content).ConfigureAwait(false);
+            if (contentEncoding.Any(a => a == "gzip"))
+                responseContent = await DecompressGZip(httpResponse.Content);
             else
-                responseContent = await httpResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
+                responseContent = await httpResponse.Content.ReadAsStringAsync();
             var utcNow = DateTime.UtcNow;
             return new RequestResult(method, path, query, data, responseContent, (int)httpResponse.StatusCode, ToDictionary(httpResponse.Headers), startTime, utcNow);
         }
@@ -101,10 +98,7 @@ namespace FaunaDB.Extensions
         /// <summary>Convert query parameters to a URL string.</summary>
         private static string QueryString(IReadOnlyDictionary<string, string> query)
         {
-            var queryString = HttpUtility.ParseQueryString("");
-            foreach (var keyValuePair in query)
-                queryString[keyValuePair.Key] = keyValuePair.Value;
-            return queryString.ToString();
+            return string.Join("&", query.Select(a => $"{a.Key}={a.Value}"));
         }
     }
 }

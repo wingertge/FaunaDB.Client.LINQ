@@ -1,4 +1,4 @@
-﻿namespace FaunaDB.Extensions
+﻿namespace FaunaDB.LINQ.Types
 {
     public interface IReferenceType
     {

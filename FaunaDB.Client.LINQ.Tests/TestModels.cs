@@ -1,19 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
-using FaunaDB.Extensions;
+using FaunaDB.LINQ.Modeling;
+using FaunaDB.LINQ.Types;
 using FaunaDB.Types;
+using Newtonsoft.Json;
 
 namespace FaunaDB.Client.LINQ.Tests
 {
     public class ReferenceModel : IReferenceType
     {
-        [FaunaField("ref")]
+        [JsonProperty("ref")]
         public string Id { get; set; }
         [Indexed("index_1")]
         public string Indexed1 { get; set; }
         [Indexed("index_2")]
         public string Indexed2 { get; set; }
-        [FaunaField("ts")]
+        [JsonProperty("ts")]
         public DateTime TimeStamp { get; set; }
 
         [Indexed("composite_index")]
@@ -22,7 +24,7 @@ namespace FaunaDB.Client.LINQ.Tests
 
     public class PrimitivesReferenceModel : IReferenceType
     {
-        [FaunaField("ref")]
+        [JsonProperty("ref")]
         public string Id { get; set; }
         public string StringVal { get; set; }
         public int IntVal { get; set; }
@@ -42,7 +44,7 @@ namespace FaunaDB.Client.LINQ.Tests
 
     public class ValueTypesReferenceModel : IReferenceType
     {
-        [FaunaField("ref")]
+        [JsonProperty("ref")]
         public string Id { get; set; }
 
         public ValueModel ValueModel { get; set; }
@@ -52,7 +54,7 @@ namespace FaunaDB.Client.LINQ.Tests
 
     public class ReferenceTypesReferenceModel : IReferenceType
     {
-        [FaunaField("ref")]
+        [JsonProperty("ref")]
         public string Id { get; set; }
 
         [Reference]

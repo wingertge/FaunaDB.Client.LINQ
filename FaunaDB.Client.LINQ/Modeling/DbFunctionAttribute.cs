@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace FaunaDB.Extensions
+namespace FaunaDB.LINQ.Modeling
 {
     /// <summary>
     /// Attribute to use for UDF stubs.

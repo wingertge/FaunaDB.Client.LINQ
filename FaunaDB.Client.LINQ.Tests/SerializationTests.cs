@@ -1,23 +1,35 @@
 ﻿using System;
 using System.Collections.Generic;
-using FaunaDB.Extensions;
-using FaunaDB.Query;
+using FaunaDB.LINQ.Extensions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using static FaunaDB.Extensions.Language;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
+using static FaunaDB.Query.Language;
 
 namespace FaunaDB.Client.LINQ.Tests
 {
     [TestClass]
     public class SerializationTests
     {
+        public SerializationTests()
+        {
+            JsonConvert.DefaultSettings = () => new JsonSerializerSettings
+            {
+                NullValueHandling = NullValueHandling.Ignore,
+                Formatting = Formatting.None,
+                ContractResolver = new CamelCasePropertyNamesContractResolver()
+            };
+        }
+
         [TestMethod]
         public void BasicReferenceTypeSerializationTest()
         {
             var model = new ReferenceModel { Indexed1 = "test1", Indexed2 = "test2" }; // Indexed1: name attr "indexed1" | Indexed2: default name
 
-            var manual = Obj("indexed1", "test1", "Indexed2", "test2");
+            var manual = Obj("indexed1", "test1", "indexed2", "test2");
+            var auto = model.ToFaunaObj();
 
-            Assert.IsTrue(manual.Equals(model.ToFaunaObj()));
+            Assert.IsTrue(JsonConvert.SerializeObject(manual) == JsonConvert.SerializeObject(auto));
         }
 
         [TestMethod]
@@ -41,26 +53,28 @@ namespace FaunaDB.Client.LINQ.Tests
                 StringVal = "test1"
             };
 
-            var dict = new Dictionary<string, object>
+            var dict = new Dictionary<string, Query.Expr>
             {
-                {"BooleanVal", true},
-                {"ByteVal", 10},
-                {"CharVal", "a"},
-                {"DateTimeVal", Time(DateTime.MaxValue.ToString("O"))},
-                {"DoubleVal", 123.4},
-                {"FloatVal", 234.5f},
-                {"LongVal", 123},
-                {"IntVal", 234},
-                {"SByteVal", 1},
-                {"UIntVal", 2},
-                {"UShortVal", 3},
-                {"ULongVal", 4.0}, // bizarre issue with conversion, ulong will implicit to double for some reason
-                {"ShortVal", 5},
-                {"StringVal", "test1"}
+                {"string_val", "test1"},
+                {"int_val", 234},
+                {"boolean_val", true},
+                {"byte_val", 10},
+                {"long_val", 123},
+                {"float_val", 234.5f},
+                {"double_val", 123.4},
+                {"date_time_val", Time(DateTime.MaxValue.ToString("O"))},
+                {"short_val", 5},
+                {"u_short_val", 3},
+                {"u_int_val", 2},
+                {"u_long_val", 4}, // bizarre issue with conversion, ulong will implicit to double for some reason
+                {"s_byte_val", 1},
+                {"char_val", "a"},
             };
 
             var manual = Obj(dict);
-            Assert.IsTrue(manual.Equals(model.ToFaunaObj()));
+            var auto = model.ToFaunaObj();
+
+            Assert.IsTrue(JsonConvert.SerializeObject(manual) == JsonConvert.SerializeObject(auto));
         }
 
         [TestMethod]
@@ -73,11 +87,11 @@ namespace FaunaDB.Client.LINQ.Tests
                 ValueModels2 = new[] { new ValueModel { Value1 = "test7", Value2 = "test8" }, new ValueModel { Value1 = "test9", Value2 = "test10" } }
             };
 
-            var manual = Obj("ValueModel", Obj("Value1", "test1", "Value2", "test2"), "ValueModels1",
-                new[]{Obj("Value1", "test3", "Value2", "test4"), Obj("Value1", "test5", "Value2", "test6")},
-                "ValueModels2", new[]{Obj("Value1", "test7", "Value2", "test8"), Obj("Value1", "test9", "Value2", "test10")});
+            var manual = Obj("value_model", Obj("value1", "test1", "value2", "test2"), "value_models1",
+                Arr(Obj("value1", "test3", "value2", "test4"), Obj("value1", "test5", "value2", "test6")),
+                "value_models2", Arr(Obj("value1", "test7", "value2", "test8"), Obj("value1", "test9", "value2", "test10")));
 
-            Assert.IsTrue(manual.Equals(model.ToFaunaObj()));
+            Assert.IsTrue(JsonConvert.SerializeObject(manual) == JsonConvert.SerializeObject(model.ToFaunaObj()));
         }
 
         [TestMethod]
@@ -90,11 +104,11 @@ namespace FaunaDB.Client.LINQ.Tests
                 ReferenceModels2 = new [] { new ReferenceModel { Id = "test7", Indexed2 = "test8"}, new ReferenceModel { Id = "test9", Indexed2 = "test10" } }
             };
 
-            var manual = Obj("ReferenceModel", Ref("test1"), 
-                "ReferenceModels1", new[]{Ref("test3"), Ref("test5")},
-                "ReferenceModels2", new[]{Ref("test7"), Ref("test9")});
+            var manual = Obj("reference_model", Ref("test1"), 
+                "reference_models1", Arr(Ref("test3"), Ref("test5")),
+                "reference_models2", Arr(Ref("test7"), Ref("test9")));
 
-            Assert.IsTrue(manual.Equals(model.ToFaunaObj()));
+            Assert.IsTrue(JsonConvert.SerializeObject(manual) == JsonConvert.SerializeObject(model.ToFaunaObj()));
         }
     }
 }

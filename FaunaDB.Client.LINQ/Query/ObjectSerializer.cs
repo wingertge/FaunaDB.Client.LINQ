@@ -1,7 +1,8 @@
 ﻿using System;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
-namespace FaunaDB.Extensions
+namespace FaunaDB.LINQ.Query
 {
     public class ObjectSerializer : JsonConverter
     {
@@ -9,7 +10,13 @@ namespace FaunaDB.Extensions
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
-            JsonSerializer.Create(Settings).Serialize(writer, value);
+            var wrapped = ((Language.ObjO) value).O;
+            writer.WriteStartObject();
+
+            var prop = new JProperty("object", JObject.FromObject(wrapped, JsonSerializer.CreateDefault(Settings)));
+            prop.WriteTo(writer);
+
+            writer.WriteEndObject();
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)

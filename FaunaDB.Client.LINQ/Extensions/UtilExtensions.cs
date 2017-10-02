@@ -3,12 +3,12 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using FaunaDB.Query;
-using FaunaDB.Types;
+using FaunaDB.LINQ.Query;
+using Newtonsoft.Json;
 
 [assembly:InternalsVisibleTo("FaunaDB.Client.LINQ.Tests")]
 
-namespace FaunaDB.Extensions
+namespace FaunaDB.LINQ.Extensions
 {
     public static class UtilExtensions
     {
@@ -34,10 +34,10 @@ namespace FaunaDB.Extensions
 
         internal static string GetFaunaFieldName(this PropertyInfo propInfo)
         {
-            var nameAttr = propInfo.GetCustomAttribute<FaunaFieldAttribute>();
-            var attrName = typeof(IReferenceType).IsAssignableFrom(propInfo.DeclaringType)
-                ? nameAttr?.Name
-                : $"data.{nameAttr?.Name}";
+            var nameAttr = propInfo.GetCustomAttribute<JsonPropertyAttribute>();
+            var attrName = new[] { "ref", "ts" }.Contains(nameAttr?.PropertyName)
+                ? nameAttr?.PropertyName
+                : $"data.{nameAttr?.PropertyName}";
             var propName = nameAttr != null ? attrName : $"data.{propInfo.Name.ToLowerUnderscored()}";
             return propName;
         }

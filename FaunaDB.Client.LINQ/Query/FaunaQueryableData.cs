@@ -3,10 +3,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using FaunaDB.Client;
-using FaunaDB.Query;
+using FaunaDB.LINQ.Client;
 
-namespace FaunaDB.Extensions
+namespace FaunaDB.LINQ.Query
 {
     public class FaunaQueryableData<TData> : IQueryable<TData>
     {

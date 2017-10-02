@@ -1,13 +1,18 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Net.Http;
 using System.Threading.Tasks;
-using FaunaDB.Client;
+using FaunaDB.LINQ.Errors;
+using FaunaDB.LINQ.Extensions;
+using FaunaDB.LINQ.Query;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 
-namespace FaunaDB.Extensions
+namespace FaunaDB.LINQ.Client
 {
     public class FaunaClient : IFaunaClient
     {
-        private static readonly JsonSerializerSettings Settings = new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, Formatting = Formatting.None };
+        private static readonly JsonSerializerSettings Settings = new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, Formatting = Formatting.None, ContractResolver = new CamelCasePropertyNamesContractResolver() };
         private readonly IClientIO _clientIo;
 
         public FaunaClient(string secret, string domain = "db.fauna.com", string scheme = "https", int? port = null, TimeSpan? timeout = null, IClientIO clientIO = null)
@@ -17,20 +22,17 @@ namespace FaunaDB.Extensions
             _clientIo = clientIO ?? new DefaultClientIO(new Uri( $"{scheme}://{domain}:{port}"), timeout ?? TimeSpan.FromSeconds(60.0), secret);
         }
 
-        public async Task<object> Query(Expr query)
-        {
-            var json = JsonConvert.SerializeObject(query, Settings);
-            var result = await _clientIo.DoRequest(HttpMethodKind.Post, "", json);
-            RaiseForStatusCode(result);
-            return JsonConvert.DeserializeObject(result.RequestContent);
-        }
-
         public async Task<T> Query<T>(Expr query)
         {
             var json = JsonConvert.SerializeObject(query, Settings);
-            var result = await _clientIo.DoRequest(HttpMethodKind.Post, "", json);
+            var result = await _clientIo.DoRequest(HttpMethod.Post, "", json);
             RaiseForStatusCode(result);
             return result.Decode<T>();
+        }
+
+        internal struct ErrorsWrapper
+        {
+            public IReadOnlyList<QueryError> Errors;
         }
 
         internal static void RaiseForStatusCode(RequestResult resultRequest)
@@ -38,7 +40,7 @@ namespace FaunaDB.Extensions
             var statusCode = resultRequest.StatusCode;
             if (statusCode >= 200 && statusCode < 300)
                 return;
-            /*Client.FaunaClient.ErrorsWrapper errorsWrapper = JsonConvert.DeserializeObject<Client.FaunaClient.ErrorsWrapper>(resultRequest.ResponseContent);
+            var errorsWrapper = JsonConvert.DeserializeObject<ErrorsWrapper>(resultRequest.ResponseContent);
             var response = new QueryErrorResponse(statusCode, errorsWrapper.Errors);
             switch (statusCode)
             {
@@ -56,7 +58,7 @@ namespace FaunaDB.Extensions
                     throw new UnavailableError(response);
                 default:
                     throw new UnknowException(response);
-            }*/
+            }
         }
     }
 }

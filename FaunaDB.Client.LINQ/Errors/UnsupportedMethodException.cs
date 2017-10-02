@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace FaunaDB.Extensions
+namespace FaunaDB.LINQ.Errors
 {
     public class UnsupportedMethodException : Exception
     {

@@ -1,6 +1,7 @@
 ﻿using System;
+using FaunaDB.LINQ.Query;
 
-namespace FaunaDB.Extensions
+namespace FaunaDB.LINQ.Types
 {
     public class Ref : IEquatable<string>
     {

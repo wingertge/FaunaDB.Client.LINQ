@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
-using FaunaDB.Extensions;
+using FaunaDB.LINQ.Client;
+using FaunaDB.LINQ.Query;
 using Moq;
 using Newtonsoft.Json;
 
@@ -13,7 +14,7 @@ namespace FaunaDB.Client.LINQ.Tests
         {
             var mock = new Mock<IFaunaClient>();
             Expr lastQuery = null;
-            mock.Setup(a => a.Query(It.IsAny<Expr>())).Returns((Expr q) =>
+            mock.Setup(a => a.Query<object>(It.IsAny<Expr>())).Returns((Expr q) =>
             {
                 lastQuery = q;
                 return Task.FromResult(JsonConvert.DeserializeObject(json));

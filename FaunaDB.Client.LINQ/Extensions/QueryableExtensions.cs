@@ -1,13 +1,13 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading.Tasks;
+using FaunaDB.LINQ.Query;
+using FaunaDB.LINQ.Types;
 
-namespace FaunaDB.Extensions
+namespace FaunaDB.LINQ.Extensions
 {
     public static class QueryableExtensions
     {
@@ -59,7 +59,7 @@ namespace FaunaDB.Extensions
         internal static readonly MethodInfo FromQueryMethodInfo =
             typeof(QueryableExtensions).GetTypeInfo().GetDeclaredMethod(nameof(FromQuery));
 
-        public static IQueryable<TOut> FromQuery<TIn, TOut>(this IQueryable<TIn> source, Expression query)
+        public static IQueryable<TOut> FromQuery<TIn, TOut>(this IQueryable<TIn> source, Expr query)
         {
             return source.Provider.CreateQuery<TOut>(Expression.Call(
                 instance: null,
