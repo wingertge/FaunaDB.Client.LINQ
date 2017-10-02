@@ -292,7 +292,7 @@ namespace FaunaDB.Extensions
                         var propType = a.PropertyType;
                         if (propType.Name.StartsWith("CompositeIndex")) return false;
                         var propName = a.GetFaunaFieldName();
-                        return propName != "@ref" && propName != "ts";
+                        return propName != "ref" && propName != "ts";
                     }).ToDictionary(a => a.GetFaunaFieldName().Replace("data.", ""), a => a.GetValue(baseObj).ToFaunaObjOrPrimitive());
                     foreach (var binding in memberInit.Bindings.OfType<MemberAssignment>())
                     {
@@ -300,7 +300,7 @@ namespace FaunaDB.Extensions
                         var propType = propInfo.PropertyType;
                         if (propType.Name.StartsWith("CompositeIndex")) continue;
                         var propName = propInfo.GetFaunaFieldName();
-                        if (propName == "@ref" || propName == "ts") continue;
+                        if (propName == "ref" || propName == "ts") continue;
                         members[propName.Replace("data.", "")] = WalkComplexExpression(binding.Expression, varName);
                     }
 
