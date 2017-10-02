@@ -11,9 +11,9 @@ namespace FaunaDB.Extensions
     public class FaunaQueryProvider : IQueryProvider
     {
         private readonly IFaunaClient _client;
-        internal readonly Expr _selector; //internal for testing
+        internal readonly object _selector; //internal for testing
 
-        public FaunaQueryProvider(IFaunaClient client, Expr selector)
+        public FaunaQueryProvider(IFaunaClient client, object selector)
         {
             _client = client;
             _selector = selector;
@@ -44,14 +44,12 @@ namespace FaunaDB.Extensions
 
         public TResult Execute<TResult>(Expression expression)
         {
-            var result = _client.Query(FaunaQueryParser.Parse(_selector, expression)).Result;
-            return result.To<TResult>().Value;
+            return _client.Query<TResult>(FaunaQueryParser.Parse(_selector, expression)).Result;
         }
 
-        public async Task<TResult> ExecuteAsync<TResult>(Expression expression)
+        public Task<TResult> ExecuteAsync<TResult>(Expression expression)
         {
-            var result = await _client.Query(FaunaQueryParser.Parse(_selector, expression));
-            return typeof(IReferenceType).IsAssignableFrom(typeof(TResult)) ? result.To<TResult>().Value : result.To<FaunaResult<TResult>>().Value.Data;
+            return _client.Query<TResult>(FaunaQueryParser.Parse(_selector, expression));
         }
     }
 }

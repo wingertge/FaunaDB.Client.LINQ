@@ -47,19 +47,14 @@ namespace FaunaDB.Extensions
             return string.Concat(s.Select((x, i) => i > 0 && char.IsUpper(x) ? "_" + x.ToString() : x.ToString())).ToLower();
         }
 
-        internal static Expr GetFaunaFieldPath(this PropertyInfo propInfo)
+        internal static object[] GetFaunaFieldPath(this PropertyInfo propInfo)
         {
-            return Language.Arr(GetFaunaFieldName(propInfo).Split('.').ToExprArray());
+            return GetFaunaFieldName(propInfo).Split('.').ToArray<object>();
         }
 
-        internal static Expr GetClass(this object obj)
+        internal static object GetClassRef(this object obj)
         {
             return Language.Class(obj.GetType().Name.ToLowerUnderscored());
-        }
-
-        internal static Expr GetClassRef(this object obj)
-        {
-            return Language.Ref(GetClass(obj), 1);
         }
 
         internal static T GetConstantValue<T>(this Expression expression)

@@ -6,7 +6,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using FaunaDB.Query;
-using static FaunaDB.Query.Language;
+using static FaunaDB.Extensions.Language;
 
 namespace FaunaDB.Extensions
 {
@@ -16,26 +16,24 @@ namespace FaunaDB.Extensions
         private const string CurrentlyUnsupportedError = "Currently unsupported by FaunaDB.";
         private const string UnsupportedError = "Unsupported by FaunaDB (likely won't change).";
 
-        private static readonly Dictionary<(Type, string), Func<Expr, Expr, Expr>> BuiltInBinaryMethods = new Dictionary<(Type, string), Func<Expr, Expr, Expr>>
+        private static readonly Dictionary<(Type, string), Func<object, object, object>> BuiltInBinaryMethods = new Dictionary<(Type, string), Func<object, object, object>>
         {
-            { (typeof(string), "Concat"), (left, right) => Concat(Arr(left, right)) }
+            { (typeof(string), "Concat"), (left, right) => Concat(left, right) }
         };
 
-        private static readonly Dictionary<(Type, string), Func<Expr[], Expr>> BuiltInFunctions = new Dictionary<(Type, string), Func<Expr[], Expr>>
+        private static readonly Dictionary<(Type, string), Func<object[], object>> BuiltInFunctions = new Dictionary<(Type, string), Func<object[], object>>
         {
-            { (typeof(string), "Concat"), args => Concat(Arr(args)) },
-            { (typeof(Tuple), "Create"), Arr }
+            { (typeof(string), "Concat"), Concat },
+            { (typeof(Tuple), "Create"), a => a }
         };
 
-        public static Expr[] ToExprArray<T>(this IEnumerable<T> collection) => collection.Select(a => (Expr)((dynamic)a)).ToArray();
-
-        public static Expr Parse(Expr selector, Expression expr)
+        public static Expr Parse(object selector, Expression expr)
         {
             _lambdaIndex = 0;
-            return WalkExpression(selector, expr);
+            return (Expr)WalkExpression(selector, expr);
         }
 
-        private static Expr WalkExpression(Expr selector, Expression expr)
+        private static object WalkExpression(object selector, Expression expr)
         {
             if (!(expr is MethodCallExpression)) return selector;
             var methodExpr = (MethodCallExpression) expr;
@@ -46,7 +44,7 @@ namespace FaunaDB.Extensions
             var args = argsArr.Skip(1).Take(argsArr.Count - 1).ToArray();
 
             var method = methodExpr.Method;
-            Expr current;
+            object current;
 
             switch (method.Name)
             {
@@ -82,7 +80,7 @@ namespace FaunaDB.Extensions
             return current;
         }
 
-        private static Expr HandleInclude(IReadOnlyList<Expression> args, Expr rest)
+        private static object HandleInclude(IReadOnlyList<Expression> args, object rest)
         {
             var lambdaArgName = $"arg{++_lambdaIndex}";
             var lambda = (LambdaExpression)args[0];
@@ -101,17 +99,17 @@ namespace FaunaDB.Extensions
                             ? typeof(IEnumerable).IsAssignableFrom(propInfo.PropertyType)
                                 ? Map(fieldSelector,
                                     Lambda($"arg{++_lambdaIndex}",
-                                        If(Exists(Var($"arg{_lambdaIndex}")), Get(Var($"arg{_lambdaIndex}")), Null())))
-                                : If(Exists(fieldSelector), Get(fieldSelector), Null()) //perform safe include
+                                        If(Exist(Var($"arg{_lambdaIndex}")), Get(Var($"arg{_lambdaIndex}")), null)))
+                                : If(Exist(fieldSelector), Get(fieldSelector), null) //perform safe include
                             : fieldSelector;
                     });
 
-            var mappedObj = Obj("ref", Select("ref", Var(lambdaArgName)), "ts", Select("ts", Var(lambdaArgName)), "data", Obj(fields));
+            var mappedObj = Obj(new Dictionary<string, object> {{"ref", Select("ref", Var(lambdaArgName))}, {"ts", Select("ts", Var(lambdaArgName))}, {"data", Obj(fields)}});
 
             return Map(rest, Lambda(lambdaArgName, mappedObj));
         }
 
-        private static Expr HandlePaginate(IReadOnlyList<Expression> args, Expr rest)
+        private static object HandlePaginate(IReadOnlyList<Expression> args, object rest)
         {
             var fromRef = ((ConstantExpression)args[0]).Value.ToString();
             var sortDirection = (ListSortDirection)((ConstantExpression)args[1]).Value;
@@ -135,7 +133,7 @@ namespace FaunaDB.Extensions
                 : Paginate(rest, before: fromRef, size: size);
         }
 
-        private static Expr HandleSelect(IReadOnlyList<Expression> args, Expr rest)
+        private static object HandleSelect(IReadOnlyList<Expression> args, object rest)
         {
             var lambda = args[0] is UnaryExpression unary
                 ? (LambdaExpression) unary.Operand
@@ -145,14 +143,14 @@ namespace FaunaDB.Extensions
             return Map(rest, Lambda(argName, WalkComplexExpression(lambda.Body, argName)));
         }
 
-        private static Expr HandleWhere(IReadOnlyList<Expression> args, Expr rest)
+        private static object HandleWhere(IReadOnlyList<Expression> args, object rest)
         {
             var lambda = args[0] is LambdaExpression lexp ? lexp : (LambdaExpression)((UnaryExpression)args[0]).Operand;
             var body = (BinaryExpression) lambda.Body;
             return Filter(rest, Lambda($"arg{++_lambdaIndex}", WalkComplexExpression(body, $"arg{_lambdaIndex}")));
         }
 
-        private static Expr WalkComplexExpression(Expression expression, string varName)
+        private static object WalkComplexExpression(Expression expression, string varName)
         {
             switch (expression)
             {
@@ -196,7 +194,7 @@ namespace FaunaDB.Extensions
                         case ExpressionType.LessThanOrEqual:
                             return LTE(left, right);
                         case ExpressionType.Coalesce:
-                            return If(EqualsFn(left, Null()), right, left);
+                            return If(EqualsFn(left, null), right, left);
                         case ExpressionType.Power:
                             throw new UnsupportedMethodException(binary.NodeType.ToString(), CurrentlyUnsupportedError);
                         case ExpressionType.ExclusiveOr:
@@ -210,7 +208,7 @@ namespace FaunaDB.Extensions
                             throw new UnsupportedMethodException(binary.Method?.Name ?? binary.NodeType.ToString());
                     }
                 case BlockExpression block:
-                    return Do(block.Expressions.Select(a => WalkComplexExpression(a, varName)).ToArray());
+                    return Do(block.Expressions.Select(a => WalkComplexExpression(a, varName)).Cast<Expr>().ToArray());
                 case ConditionalExpression conditional:
                     return If(WalkComplexExpression(conditional.Test, varName),
                         WalkComplexExpression(conditional.IfTrue, varName),
@@ -223,14 +221,14 @@ namespace FaunaDB.Extensions
                 case IndexExpression _:
                     throw new UnsupportedMethodException("Goto", "Seriously?");
                 case ListInitExpression listInit:
-                    var result = new List<Expr>();
+                    var result = new List<object>();
                     foreach (var initializer in listInit.Initializers)
                     {
                         var args = initializer.Arguments;
                         if(args.Count == 1) result.Add(WalkComplexExpression(args[0], varName));
                         else throw new UnsupportedMethodException("Tuple collection initializer not supported.");
                     }
-                    return Arr(result.ToArray());
+                    return result.ToArray();
                 case MemberExpression member:
                     switch (member.Member)
                     {
@@ -329,9 +327,9 @@ namespace FaunaDB.Extensions
                     switch (newArray.NodeType)
                     {
                         case ExpressionType.NewArrayBounds:
-                            return Arr();
+                            return Activator.CreateInstance(newArray.Type.MakeArrayType(), (int)((ConstantExpression)newArray.Expressions[0]).Value);
                         case ExpressionType.NewArrayInit:
-                            return Arr(newArray.Expressions.Select(a => WalkComplexExpression(a, varName)));
+                            return newArray.Expressions.Select(a => WalkComplexExpression(a, varName));
                         default:
                             throw new ArgumentOutOfRangeException();
                     }

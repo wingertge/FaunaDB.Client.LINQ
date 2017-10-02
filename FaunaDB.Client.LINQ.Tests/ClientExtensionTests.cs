@@ -1,8 +1,7 @@
 using System;
 using FaunaDB.Extensions;
-using FaunaDB.Query;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using static FaunaDB.Query.Language;
+using static FaunaDB.Extensions.Language;
 
 namespace FaunaDB.Client.LINQ.Tests
 {
@@ -22,7 +21,7 @@ namespace FaunaDB.Client.LINQ.Tests
             q.Provider.Execute<object>(q.Expression);
             var parsed = lastQuery;
 
-            var manual = Map(Match(Index("composite_index"), "test1", "test2"), arg0 => Get(arg0));
+            var manual = Map(Match(Index("composite_index"), "test1", "test2"), Lambda("arg0", Get(Var("arg0"))));
 
             Assert.IsTrue(parsed.Equals(manual));
         } 
@@ -37,7 +36,7 @@ namespace FaunaDB.Client.LINQ.Tests
         {
             var q = client.Query<ReferenceModel>(a => a.CompositeIndex == Tuple.Create("test1", "test2"));
 
-            var manual = Map(Match(Index("composite_index"), "test1", "test2"), arg0 => Get(arg0));
+            var manual = Map(Match(Index("composite_index"), "test1", "test2"), Lambda("arg0", Get(Var("arg0"))));
             q.Provider.Execute<object>(q.Expression);
 
             Assert.IsTrue(lastQuery.Equals(manual));
@@ -54,7 +53,7 @@ namespace FaunaDB.Client.LINQ.Tests
             var q = client.Query<ReferenceModel>(a => a.Indexed1 == "test2");
             q.Provider.Execute<object>(q.Expression);
             var parsed = lastQuery;
-            var manual = Map(Match(Index("index_1"), "test2"), arg0 => Get(arg0));
+            var manual = Map(Match(Index("index_1"), "test2"), Lambda("arg0", Get(Var("arg0"))));
 
             Assert.IsTrue(parsed.Equals(manual));
         }
@@ -70,8 +69,8 @@ namespace FaunaDB.Client.LINQ.Tests
             var q1 = client.Query<ReferenceModel>(a => a.Indexed1 == "test1" && a.Indexed2 == "test2");
             var q2 = client.Query<ReferenceModel>(a => a.Indexed1 == "test1" || a.Indexed2 == "test2");
 
-            var manual1 = Map(Intersection(Match(Index("index_1"), "test1"), Match(Index("index_2"), "test2")), arg0 => Get(arg0));
-            var manual2 = Map(Union(Match(Index("index_1"), "test1"), Match(Index("index_2"), "test2")), arg0 => Get(arg0));
+            var manual1 = Map(Intersection(Match(Index("index_1"), "test1"), Match(Index("index_2"), "test2")), Lambda("arg0", Get(Var("arg0"))));
+            var manual2 = Map(Union(Match(Index("index_1"), "test1"), Match(Index("index_2"), "test2")), Lambda("arg0", Get(Var("arg0"))));
 
             q1.Provider.Execute<object>(q1.Expression);
             Assert.IsTrue(lastQuery.Equals(manual1));
@@ -107,7 +106,7 @@ namespace FaunaDB.Client.LINQ.Tests
             var model = new ReferenceModel {Indexed1 = "test1", Indexed2 = "test2"};
             var q = client.Create(model).Result;
 
-            var manual = Create(Ref(Class("reference_model"), 1), Obj("data", model.ToFaunaObj()));
+            var manual = Create(Class("reference_model"), Obj("data", model.ToFaunaObj()));
 
             Assert.IsTrue(lastQuery.Equals(manual));
         }
@@ -139,8 +138,8 @@ namespace FaunaDB.Client.LINQ.Tests
             var model = new ReferenceModel { Id = "testId", Indexed1 = "test1", Indexed2 = "test2" };
             var q = client.Upsert(model);
 
-            var manual = If(Exists(Ref(model.Id)), Update(Ref(model.Id), model.ToFaunaObj()),
-                Create(Ref(Class("reference_model"), 1), model.ToFaunaObj()));
+            var manual = If(Exist(Ref(model.Id)), Update(Ref(model.Id), model.ToFaunaObj()),
+                Create(Class("reference_model"), model.ToFaunaObj()));
 
             Assert.IsTrue(lastQuery.Equals(manual));
         }
@@ -188,7 +187,7 @@ namespace FaunaDB.Client.LINQ.Tests
             var q = client.Upsert(model, a => a.CompositeIndex, "test1", "test2");
 
             var matchExpr = Match(Index("composite_index"), "test1", "test2");
-            var manual = If(Exists(matchExpr), Map(matchExpr, a => Update(a, model.ToFaunaObj())), Create(model.GetClassRef(), model.ToFaunaObj()));
+            var manual = If(Exist(matchExpr), Map(matchExpr, Lambda("arg0", Update(Var("arg0"), model.ToFaunaObj()))), Create(model.GetClassRef(), model.ToFaunaObj()));
 
             Assert.IsTrue(lastQuery.Equals(manual));
         }
@@ -205,7 +204,7 @@ namespace FaunaDB.Client.LINQ.Tests
             var q = client.Upsert(model, a => a.Indexed1 == "test1");
 
             var matchExpr = Match(Index("index_1"), "test1");
-            var manual = If(Exists(matchExpr), Map(matchExpr, a => Update(a, model.ToFaunaObj())),
+            var manual = If(Exist(matchExpr), Map(matchExpr, Lambda("arg0", Update(Var("arg0"), model.ToFaunaObj()))),
                 Create(model.GetClassRef(), model.ToFaunaObj()));
 
             Assert.IsTrue(lastQuery.Equals(manual));

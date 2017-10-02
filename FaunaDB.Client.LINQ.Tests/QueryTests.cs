@@ -1,9 +1,7 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Linq;
-using System.Linq.Expressions;
 using FaunaDB.Extensions;
-using FaunaDB.Query;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using static FaunaDB.Query.Language;
 

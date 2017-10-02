@@ -7,15 +7,21 @@ namespace FaunaDB.Extensions
 {
     public class FaunaClientProxy : IFaunaClient
     {
-        private readonly FaunaClient _client;
-        public FaunaClientProxy(FaunaClient client)
+        private readonly Client.FaunaClient _client;
+        public FaunaClientProxy(Client.FaunaClient client)
         {
             _client = client;
         }
 
-        public Task<Value> Query(Expr query)
+        public async Task<object> Query(Expr query)
         {
-            return _client.Query(query);
+            return await _client.Query((dynamic)query);
+        }
+
+        public async Task<T> Query<T>(Expr query)
+        {
+            var result = await _client.Query((dynamic) query);
+            return result.To<T>().Value;
         }
     }
 }

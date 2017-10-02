@@ -24,7 +24,7 @@ namespace FaunaDB.Extensions
         public Type ElementType { get; }
         public IQueryProvider Provider { get; }
 
-        public FaunaQueryableData(IFaunaClient client, Expr selector)
+        public FaunaQueryableData(IFaunaClient client, object selector)
         {
             Provider = new FaunaQueryProvider(client, selector);
             Expression = Expression.Constant(this);

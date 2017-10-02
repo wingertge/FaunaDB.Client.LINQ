@@ -3,9 +3,7 @@ using System.Collections.Generic;
 using FaunaDB.Extensions;
 using FaunaDB.Query;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using static FaunaDB.Query.Language;
-using FaunaDB.Types;
-using System.Linq;
+using static FaunaDB.Extensions.Language;
 
 namespace FaunaDB.Client.LINQ.Tests
 {
@@ -43,7 +41,7 @@ namespace FaunaDB.Client.LINQ.Tests
                 StringVal = "test1"
             };
 
-            var dict = new Dictionary<string, Expr>
+            var dict = new Dictionary<string, object>
             {
                 {"BooleanVal", true},
                 {"ByteVal", 10},
@@ -76,8 +74,8 @@ namespace FaunaDB.Client.LINQ.Tests
             };
 
             var manual = Obj("ValueModel", Obj("Value1", "test1", "Value2", "test2"), "ValueModels1",
-                Arr(Obj("Value1", "test3", "Value2", "test4"), Obj("Value1", "test5", "Value2", "test6")),
-                "ValueModels2", Arr(Obj("Value1", "test7", "Value2", "test8"), Obj("Value1", "test9", "Value2", "test10")));
+                new[]{Obj("Value1", "test3", "Value2", "test4"), Obj("Value1", "test5", "Value2", "test6")},
+                "ValueModels2", new[]{Obj("Value1", "test7", "Value2", "test8"), Obj("Value1", "test9", "Value2", "test10")});
 
             Assert.IsTrue(manual.Equals(model.ToFaunaObj()));
         }
@@ -93,8 +91,8 @@ namespace FaunaDB.Client.LINQ.Tests
             };
 
             var manual = Obj("ReferenceModel", Ref("test1"), 
-                "ReferenceModels1", Arr(Ref("test3"), Ref("test5")),
-                "ReferenceModels2", Arr(Ref("test7"), Ref("test9")));
+                "ReferenceModels1", new[]{Ref("test3"), Ref("test5")},
+                "ReferenceModels2", new[]{Ref("test7"), Ref("test9")});
 
             Assert.IsTrue(manual.Equals(model.ToFaunaObj()));
         }

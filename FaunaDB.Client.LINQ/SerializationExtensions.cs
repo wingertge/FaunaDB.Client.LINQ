@@ -3,16 +3,16 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using FaunaDB.Query;
-using FaunaDB.Types;
+using FaunaDB.Client;
+using Newtonsoft.Json.Linq;
 
 namespace FaunaDB.Extensions
 {
     public static class SerializationExtensions
     {
-        public static Expr ToFaunaObj(this object obj)
+        public static object ToFaunaObj(this object obj)
         {
-            var fields = new Dictionary<string, Expr>();
+            var fields = new Dictionary<string, object>();
             foreach (var prop in obj.GetType().GetProperties())
             {
                 var propType = prop.PropertyType;
@@ -20,7 +20,7 @@ namespace FaunaDB.Extensions
                 var propValue = prop.GetValue(obj);
                 var propName = prop.GetFaunaFieldName().Replace("data.", "");
                 if (propName == "ref" || propName == "ts") continue;
-                if (propValue == null) fields[propName] = Language.Null();
+                if (propValue == null) fields[propName] = null;
                 switch (Type.GetTypeCode(propType))
                 {
                     case TypeCode.Byte:
@@ -46,8 +46,8 @@ namespace FaunaDB.Extensions
                         if (typeof(IEnumerable).IsAssignableFrom(propType))
                         {
                             fields[propName] = referenceAttr == null 
-                                ? Language.Arr(((IEnumerable)propValue).Cast<object>().Select(a => a.ToFaunaObjOrPrimitive()).ToArray()) 
-                                : Language.Arr(((IEnumerable)propValue).Cast<IReferenceType>().Select(a => Language.Ref(a.Id)).ToArray());
+                                ? ((IEnumerable)propValue).Cast<object>().Select(a => a.ToFaunaObjOrPrimitive()).ToArray()
+                                : ((IEnumerable)propValue).Cast<IReferenceType>().Select(a => Language.Ref(a.Id)).ToArray();
                             continue;
                         }
 
@@ -67,18 +67,28 @@ namespace FaunaDB.Extensions
             return Language.Obj(fields);
         }
 
-        public static T Decode<T>(this Value value)
+        public static T Decode<T>(this RequestResult request)
         {
-            return (T) Decode(value, typeof(T));
+            return (T) Decode(request.RequestContent, typeof(T));
         }
 
-        public static dynamic Decode(this Value value, Type type)
+        public static dynamic Decode(this JToken value, Type type)
         {
             var obj = Activator.CreateInstance(type);
 
             foreach (var prop in type.GetProperties())
             {
                 var faunaPath = prop.GetFaunaFieldName().Split('.');
+                var current = value;
+                var valid = true;
+                foreach (var segment in faunaPath)
+                {
+                    if (current is JObject jObj && jObj.TryGetValue(segment, out current)) continue;
+                    valid = false;
+                    break;
+                }
+                if(!valid) continue;
+
                 switch (Type.GetTypeCode(prop.PropertyType))
                 {
                     case TypeCode.Byte:
@@ -94,27 +104,26 @@ namespace FaunaDB.Extensions
                     case TypeCode.String:
                     case TypeCode.Boolean:
                     case TypeCode.UInt64:
-                        prop.SetValue(obj, value.At(faunaPath).To<dynamic>().Value);
+                        prop.SetValue(obj, current.ToObject(prop.PropertyType));
                         continue;
                     case TypeCode.Object:
                         if (typeof(IEnumerable).IsAssignableFrom(prop.PropertyType))
                         {
                             if (typeof(IReferenceType).IsAssignableFrom(prop.PropertyType.GetElementType()))
                             {
-                                var enumerable = value.At(faunaPath).To<IEnumerable<Value>>().Value;
-                                var result = enumerable
-                                    .Select(item => Decode(item, prop.PropertyType.GetElementType())).ToList();
+                                var enumerable = current.ToObject<IEnumerable<JObject>>();
+                                var result = enumerable.Select(item => Decode(item, prop.PropertyType.GetElementType())).ToList();
                                 prop.SetValue(obj, (dynamic) result);
                             }
-                            else prop.SetValue(obj, (dynamic) value.At(faunaPath).To<IEnumerable<dynamic>>().Value);
+                            else prop.SetValue(obj, current.ToObject(prop.PropertyType));
                         }
-                        else prop.SetValue(obj, Decode(value, prop.PropertyType));
+                        else prop.SetValue(obj, Decode(current, prop.PropertyType));
                         continue;
                     case TypeCode.Char:
-                        prop.SetValue(obj, value.At(faunaPath).To<string>().Value.ToCharArray()[0]);
+                        prop.SetValue(obj, current.ToObject<string>().ToCharArray()[0]);
                         continue;
                     case TypeCode.DateTime:
-                        prop.SetValue(obj, value.At(faunaPath).To<DateTime>().Value);
+                        prop.SetValue(obj, DateTime.Parse(current.ToObject<Language.TimeStampV>().Ts.ToString()));
                         continue;
                     case TypeCode.Empty:
                         break;
@@ -128,15 +137,15 @@ namespace FaunaDB.Extensions
             return obj;
         }
 
-        internal static Expr ToFaunaObjOrPrimitive(this object obj)
+        internal static object ToFaunaObjOrPrimitive(this object obj)
         {
-            if (obj == null) return Language.Null();
+            if (obj == null) return null;
             switch (Type.GetTypeCode(obj.GetType()))
             {
                 case TypeCode.Object:
                     return obj.ToFaunaObj();
                 case TypeCode.DBNull:
-                    return Language.Null();
+                    return null;
                 case TypeCode.Boolean:
                 case TypeCode.SByte:
                 case TypeCode.Byte:
@@ -150,7 +159,7 @@ namespace FaunaDB.Extensions
                 case TypeCode.Double:
                 case TypeCode.Decimal:
                 case TypeCode.String:
-                    return (dynamic) obj;
+                    return obj;
                 case TypeCode.Char:
                     return obj.ToString();
                 case TypeCode.DateTime:

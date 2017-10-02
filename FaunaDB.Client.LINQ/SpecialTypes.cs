@@ -1,5 +1,4 @@
 ﻿using System;
-using FaunaDB.Query;
 
 namespace FaunaDB.Extensions
 {
