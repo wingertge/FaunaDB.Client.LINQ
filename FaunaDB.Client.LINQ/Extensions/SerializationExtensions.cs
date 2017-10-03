@@ -29,7 +29,7 @@ namespace FaunaDB.LINQ.Extensions
                     continue;
                 }
 
-                if (propType.GetTypeInfo().IsPrimitive)
+                if (propType.GetTypeInfo().IsPrimitive || propType == typeof(string))
                     fields[propName] = propValue;
                 else if (propType == typeof(DateTime))
                     fields[propName] = Language.Time(((DateTime) propValue).ToString("O"));
@@ -104,7 +104,7 @@ namespace FaunaDB.LINQ.Extensions
         {
             if (obj == null) return null;
             var type = obj.GetType();
-            if (type.GetTypeInfo().IsPrimitive)
+            if (type.GetTypeInfo().IsPrimitive || type == typeof(string))
                 return obj;
             return type == typeof(DateTime) 
                 ? Language.Time(((DateTime)obj).ToString("O")) 
