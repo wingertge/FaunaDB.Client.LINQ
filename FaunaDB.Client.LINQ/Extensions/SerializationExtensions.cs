@@ -103,31 +103,12 @@ namespace FaunaDB.LINQ.Extensions
         internal static object ToFaunaObjOrPrimitive(this object obj)
         {
             if (obj == null) return null;
-            switch (Convert.GetTypeCode(obj))
-            {
-                case TypeCode.Object:
-                    return obj.ToFaunaObj();
-                case TypeCode.Boolean:
-                case TypeCode.SByte:
-                case TypeCode.Byte:
-                case TypeCode.Int16:
-                case TypeCode.UInt16:
-                case TypeCode.Int32:
-                case TypeCode.UInt32:
-                case TypeCode.Int64:
-                case TypeCode.UInt64:
-                case TypeCode.Single:
-                case TypeCode.Double:
-                case TypeCode.Decimal:
-                case TypeCode.String:
-                    return obj;
-                case TypeCode.Char:
-                    return obj.ToString();
-                case TypeCode.DateTime:
-                    return Language.Time(((DateTime)obj).ToString("O"));
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
+            var type = obj.GetType();
+            if (type.GetTypeInfo().IsPrimitive)
+                return obj;
+            return type == typeof(DateTime) 
+                ? Language.Time(((DateTime)obj).ToString("O")) 
+                : obj.ToFaunaObj();
         }
     }
 }
