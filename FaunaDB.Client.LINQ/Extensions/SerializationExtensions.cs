@@ -23,47 +23,29 @@ namespace FaunaDB.LINQ.Extensions
                 var propValue = prop.GetValue(obj);
                 var propName = prop.GetFaunaFieldName().Replace("data.", "");
                 if (propName == "ref" || propName == "ts") continue;
-                if (propValue == null) fields[propName] = null;
-                switch (Type.GetTypeCode(propType))
+                if (propValue == null)
                 {
-                    case TypeCode.Byte:
-                    case TypeCode.SByte:
-                    case TypeCode.UInt16:
-                    case TypeCode.UInt32:
-                    case TypeCode.Int16:
-                    case TypeCode.Int32:
-                    case TypeCode.Int64:
-                    case TypeCode.Decimal:
-                    case TypeCode.Double:
-                    case TypeCode.Single:
-                    case TypeCode.String:
-                    case TypeCode.Boolean:
-                        fields[propName] = propValue;
-                        continue;
-                    case TypeCode.UInt64:
-                        fields[propName] = (ulong) propValue;
-                        continue;
-                    case TypeCode.Object:
-                        var referenceAttr = prop.GetCustomAttribute(typeof(ReferenceAttribute));
+                    fields[propName] = null;
+                    continue;
+                }
 
-                        if (typeof(IEnumerable).IsAssignableFrom(propType))
-                        {
-                            fields[propName] = referenceAttr == null 
-                                ? ((IEnumerable)propValue).Cast<object>().Select(a => a.ToFaunaObjOrPrimitive()).ToArray()
-                                : ((IEnumerable)propValue).Cast<IReferenceType>().Select(a => Language.Ref(a.Id)).ToArray();
-                            continue;
-                        }
+                if (propType.GetTypeInfo().IsPrimitive)
+                    fields[propName] = propValue;
+                else if (propType == typeof(DateTime))
+                    fields[propName] = Language.Time(((DateTime) propValue).ToString("O"));
+                else
+                {
+                    var referenceAttr = prop.GetCustomAttribute(typeof(ReferenceAttribute));
 
-                        fields[propName] = referenceAttr == null ? propValue.ToFaunaObj() : Language.Ref(((IReferenceType)propValue).Id);
+                    if (typeof(IEnumerable).IsAssignableFrom(propType))
+                    {
+                        fields[propName] = referenceAttr == null
+                            ? ((IEnumerable)propValue).Cast<object>().Select(a => a.ToFaunaObjOrPrimitive()).ToArray()
+                            : ((IEnumerable)propValue).Cast<IReferenceType>().Select(a => Language.Ref(a.Id)).ToArray();
                         continue;
-                    case TypeCode.Char:
-                        fields[propName] = propValue.ToString();
-                        continue;
-                    case TypeCode.DateTime:
-                        fields[propName] = Language.Time(((DateTime) propValue).ToString("O"));
-                        continue;
-                    default:
-                        throw new ArgumentOutOfRangeException();
+                    }
+
+                    fields[propName] = referenceAttr == null ? propValue.ToFaunaObj() : Language.Ref(((IReferenceType)propValue).Id);
                 }
             }
 
@@ -92,46 +74,26 @@ namespace FaunaDB.LINQ.Extensions
                 }
                 if(!valid) continue;
 
-                switch (Type.GetTypeCode(prop.PropertyType))
+                var propType = prop.PropertyType.GetTypeInfo();
+
+                if (propType.IsPrimitive)
+                    prop.SetValue(obj, current.ToObject(prop.PropertyType));
+                else if (prop.PropertyType == typeof(DateTime))
+                    prop.SetValue(obj, DateTime.Parse(current.ToObject<Language.TimeStampV>().Ts.ToString()));
+                else
                 {
-                    case TypeCode.Byte:
-                    case TypeCode.SByte:
-                    case TypeCode.UInt16:
-                    case TypeCode.UInt32:
-                    case TypeCode.Int16:
-                    case TypeCode.Int32:
-                    case TypeCode.Int64:
-                    case TypeCode.Decimal:
-                    case TypeCode.Double:
-                    case TypeCode.Single:
-                    case TypeCode.String:
-                    case TypeCode.Boolean:
-                    case TypeCode.UInt64:
-                        prop.SetValue(obj, current.ToObject(prop.PropertyType));
-                        continue;
-                    case TypeCode.Object:
-                        if (typeof(IEnumerable).IsAssignableFrom(prop.PropertyType))
+                    if (typeof(IEnumerable).IsAssignableFrom(prop.PropertyType))
+                    {
+                        if (typeof(IReferenceType).IsAssignableFrom(prop.PropertyType.GetElementType()))
                         {
-                            if (typeof(IReferenceType).IsAssignableFrom(prop.PropertyType.GetElementType()))
-                            {
-                                var enumerable = current.ToObject<IEnumerable<JObject>>();
-                                var result = enumerable.Select(item => Decode(item, prop.PropertyType.GetElementType())).ToList();
-                                prop.SetValue(obj, (dynamic) result);
-                            }
-                            else prop.SetValue(obj, current.ToObject(prop.PropertyType));
+                            var enumerable = current.ToObject<IEnumerable<JObject>>();
+                            var result = enumerable.Select(item => Decode(item, prop.PropertyType.GetElementType()))
+                                .ToList();
+                            prop.SetValue(obj, (dynamic) result);
                         }
-                        else prop.SetValue(obj, Decode(current, prop.PropertyType));
-                        continue;
-                    case TypeCode.Char:
-                        prop.SetValue(obj, current.ToObject<string>().ToCharArray()[0]);
-                        continue;
-                    case TypeCode.DateTime:
-                        prop.SetValue(obj, DateTime.Parse(current.ToObject<Language.TimeStampV>().Ts.ToString()));
-                        continue;
-                    case TypeCode.Empty:
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException();
+                        else prop.SetValue(obj, current.ToObject(prop.PropertyType));
+                    }
+                    else prop.SetValue(obj, Decode(current, prop.PropertyType));
                 }
             }
 
@@ -141,7 +103,7 @@ namespace FaunaDB.LINQ.Extensions
         internal static object ToFaunaObjOrPrimitive(this object obj)
         {
             if (obj == null) return null;
-            switch (Type.GetTypeCode(obj.GetType()))
+            switch (Convert.GetTypeCode(obj))
             {
                 case TypeCode.Object:
                     return obj.ToFaunaObj();
