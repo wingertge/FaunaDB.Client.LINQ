@@ -65,6 +65,9 @@ namespace FaunaDB.LINQ.Query
                 case "Take":
                     current = Language.Take(args[0].GetConstantValue<int>(), rest);
                     break;
+                case "Distinct":
+                    current = Language.Distinct(rest);
+                    break;
                 case "Include":
                 case "AlsoInclude":
                     current = HandleInclude(args, rest);
