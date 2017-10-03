@@ -897,7 +897,7 @@ namespace FaunaDB.LINQ.Query
 
         public class EqualsO : Expr
         {
-            public object[] Equals { get; set; }
+            public new object[] Equals { get; set; }
 
             public EqualsO(object[] equals)
             {

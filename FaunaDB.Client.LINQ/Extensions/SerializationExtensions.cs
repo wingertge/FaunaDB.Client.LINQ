@@ -130,8 +130,6 @@ namespace FaunaDB.LINQ.Extensions
                         continue;
                     case TypeCode.Empty:
                         break;
-                    case TypeCode.DBNull:
-                        break;
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
@@ -147,8 +145,6 @@ namespace FaunaDB.LINQ.Extensions
             {
                 case TypeCode.Object:
                     return obj.ToFaunaObj();
-                case TypeCode.DBNull:
-                    return null;
                 case TypeCode.Boolean:
                 case TypeCode.SByte:
                 case TypeCode.Byte:

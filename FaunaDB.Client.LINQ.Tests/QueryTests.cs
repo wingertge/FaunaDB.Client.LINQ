@@ -8,6 +8,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using static FaunaDB.Query.Language;
+using ListSortDirection = FaunaDB.LINQ.Types.ListSortDirection;
 
 namespace FaunaDB.Client.LINQ.Tests
 {
