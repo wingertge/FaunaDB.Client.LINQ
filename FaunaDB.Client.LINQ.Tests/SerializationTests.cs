@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using FaunaDB.LINQ.Client;
 using FaunaDB.LINQ.Extensions;
+using FaunaDB.LINQ.Query;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
@@ -109,6 +111,72 @@ namespace FaunaDB.Client.LINQ.Tests
                 "reference_models2", Arr(Ref("test7"), Ref("test9")));
 
             Assert.IsTrue(JsonConvert.SerializeObject(manual) == JsonConvert.SerializeObject(model.ToFaunaObj()));
+        }
+
+        [TestMethod]
+        public void SimpleDecodeTest()
+        {
+            var json = "{\"data\":{\"indexed1\":\"test1\",\"indexed2\":\"test2\"}}";
+
+            IsolationUtils.FakeClient<ReferenceModel>(SimpleDecodeTest_Run, json);
+        }
+
+        private static void SimpleDecodeTest_Run(IFaunaClient client, ref Expr lastQuery)
+        {
+            var model = new ReferenceModel { Indexed1 = "test1", Indexed2 = "test2" };
+
+            var result = client.Get<ReferenceModel>("testRef").Result;
+
+            Assert.AreEqual(model, result);
+        }
+
+        [TestMethod]
+        public void ReferenceTypeWithAllPrimitivesDecodeTest()
+        {
+            var dict = new Dictionary<string, Query.Expr>
+            {
+                {"string_val", "test1"},
+                {"int_val", 234},
+                {"boolean_val", true},
+                {"byte_val", 10},
+                {"long_val", 123},
+                {"float_val", 234.5f},
+                {"double_val", 123.4},
+                {"date_time_val", Ts(new DateTime(2010, 1, 1))},
+                {"short_val", 5},
+                {"u_short_val", 3},
+                {"u_int_val", 2},
+                {"u_long_val", 4}, // bizarre issue with conversion, ulong will implicit to double for some reason
+                {"s_byte_val", 1},
+                {"char_val", "a"},
+            };
+
+            IsolationUtils.FakeClient<PrimitivesReferenceModel>(ReferenceTypeWithAllPrimitivesDecodeTest_Run, JsonConvert.SerializeObject(new { data = dict }));
+        }
+
+        private static void ReferenceTypeWithAllPrimitivesDecodeTest_Run(IFaunaClient client, ref Expr lastQuery)
+        {
+            var model = new PrimitivesReferenceModel
+            {
+                BooleanVal = true,
+                ByteVal = 10,
+                CharVal = 'a',
+                DateTimeVal = new DateTime(2010, 1, 1),
+                DoubleVal = 123.4,
+                FloatVal = 234.5f,
+                LongVal = 123,
+                IntVal = 234,
+                SByteVal = 1,
+                UIntVal = 2,
+                UShortVal = 3,
+                ULongVal = 4,
+                ShortVal = 5,
+                StringVal = "test1"
+            };
+
+            var result = client.Get<PrimitivesReferenceModel>("test1").Result;
+
+            Assert.AreEqual(model, result);
         }
     }
 }

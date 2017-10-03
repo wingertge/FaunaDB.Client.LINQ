@@ -19,7 +19,27 @@ namespace FaunaDB.Client.LINQ.Tests
         public DateTime TimeStamp { get; set; }
 
         [Indexed("composite_index")]
-        public CompositeIndex<string, string> CompositeIndex { get; set; } 
+        public CompositeIndex<string, string> CompositeIndex { get; set; }
+
+        protected bool Equals(ReferenceModel other)
+        {
+            return string.Equals(Indexed1, other.Indexed1) && string.Equals(Indexed2, other.Indexed2);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            return obj.GetType() == GetType() && Equals((ReferenceModel) obj);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return ((Indexed1 != null ? Indexed1.GetHashCode() : 0) * 397) ^ (Indexed2 != null ? Indexed2.GetHashCode() : 0);
+            }
+        }
     }
 
     public class PrimitivesReferenceModel : IReferenceType
@@ -40,6 +60,45 @@ namespace FaunaDB.Client.LINQ.Tests
         public ulong ULongVal { get; set; }
         public sbyte SByteVal { get; set; }
         public char CharVal { get; set; }
+
+        protected bool Equals(PrimitivesReferenceModel other)
+        {
+            return string.Equals(StringVal, other.StringVal) && IntVal == other.IntVal &&
+                   BooleanVal == other.BooleanVal && ByteVal == other.ByteVal && LongVal == other.LongVal &&
+                   FloatVal.Equals(other.FloatVal) && DoubleVal.Equals(other.DoubleVal) &&
+                   DateTimeVal.Equals(other.DateTimeVal) && ShortVal == other.ShortVal &&
+                   UShortVal == other.UShortVal && UIntVal == other.UIntVal && ULongVal == other.ULongVal &&
+                   SByteVal == other.SByteVal && CharVal == other.CharVal;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (ReferenceEquals(null, obj)) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            return obj.GetType() == GetType() && Equals((PrimitivesReferenceModel) obj);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                var hashCode = (StringVal != null ? StringVal.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ IntVal;
+                hashCode = (hashCode * 397) ^ BooleanVal.GetHashCode();
+                hashCode = (hashCode * 397) ^ ByteVal.GetHashCode();
+                hashCode = (hashCode * 397) ^ LongVal.GetHashCode();
+                hashCode = (hashCode * 397) ^ FloatVal.GetHashCode();
+                hashCode = (hashCode * 397) ^ DoubleVal.GetHashCode();
+                hashCode = (hashCode * 397) ^ DateTimeVal.GetHashCode();
+                hashCode = (hashCode * 397) ^ ShortVal.GetHashCode();
+                hashCode = (hashCode * 397) ^ UShortVal.GetHashCode();
+                hashCode = (hashCode * 397) ^ (int) UIntVal;
+                hashCode = (hashCode * 397) ^ ULongVal.GetHashCode();
+                hashCode = (hashCode * 397) ^ SByteVal.GetHashCode();
+                hashCode = (hashCode * 397) ^ CharVal.GetHashCode();
+                return hashCode;
+            }
+        }
     }
 
     public class ValueTypesReferenceModel : IReferenceType

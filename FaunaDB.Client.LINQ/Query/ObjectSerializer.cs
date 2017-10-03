@@ -7,7 +7,11 @@ namespace FaunaDB.LINQ.Query
 {
     public class ObjectSerializer : JsonConverter
     {
-        private static readonly JsonSerializerSettings Settings = new JsonSerializerSettings { NullValueHandling = NullValueHandling.Include };
+        private static readonly JsonSerializerSettings Settings = new JsonSerializerSettings
+        {
+            NullValueHandling = NullValueHandling.Include,
+            DateTimeZoneHandling = DateTimeZoneHandling.Utc
+        };
 
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {

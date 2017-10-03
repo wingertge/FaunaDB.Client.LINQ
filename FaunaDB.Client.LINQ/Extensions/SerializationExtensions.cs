@@ -54,7 +54,7 @@ namespace FaunaDB.LINQ.Extensions
 
         public static T Decode<T>(this RequestResult request)
         {
-            return (T) Decode(request.ResponseContent, typeof(T));
+            return (T) Decode(JObject.Parse(request.ResponseContent), typeof(T));
         }
 
         public static dynamic Decode(this JToken value, Type type)
@@ -76,10 +76,10 @@ namespace FaunaDB.LINQ.Extensions
 
                 var propType = prop.PropertyType.GetTypeInfo();
 
-                if (propType.IsPrimitive)
+                if (propType.IsPrimitive || prop.PropertyType == typeof(string))
                     prop.SetValue(obj, current.ToObject(prop.PropertyType));
                 else if (prop.PropertyType == typeof(DateTime))
-                    prop.SetValue(obj, DateTime.Parse(current.ToObject<Language.TimeStampV>().Ts.ToString()));
+                    prop.SetValue(obj, DateTime.Parse(current.ToObject<Language.TimeStampV>().Ts.ToString()).ToUniversalTime());
                 else
                 {
                     if (typeof(IEnumerable).IsAssignableFrom(prop.PropertyType))

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Newtonsoft.Json;
 
 namespace FaunaDB.LINQ.Query
@@ -1133,6 +1134,12 @@ namespace FaunaDB.LINQ.Query
             public TimeStampV(string ts)
             {
                 Ts = ts;
+            }
+
+            [JsonConstructor]
+            public TimeStampV(DateTime ts)
+            {
+                Ts = ts.ToUniversalTime().ToString("O");
             }
         }
 
