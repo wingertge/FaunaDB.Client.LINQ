@@ -1,13 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using FaunaDB.LINQ;
 using FaunaDB.LINQ.Client;
 using FaunaDB.LINQ.Extensions;
-using FaunaDB.LINQ.Modeling;
 using FaunaDB.LINQ.Query;
 using Moq;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace FaunaDB.Client.LINQ.Tests
@@ -16,23 +12,12 @@ namespace FaunaDB.Client.LINQ.Tests
     {
         internal delegate void TestAction(IDbContext context, ref Expr lastExpr);
 
-        private static readonly Dictionary<Type, TypeConfiguration> AttributeMappings;
-        private static readonly Dictionary<Type, TypeConfiguration> ManualMappings;
-        private static readonly IFaunaClient Client;
-
-        static IsolationUtils()
-        {
-            var mockClient = new Mock<IFaunaClient>();
-            var context = CreateAttributeContext(mockClient.Object);
-            var manualContext = CreateMappingContext(mockClient.Object);
-            AttributeMappings = context.Mappings;
-            ManualMappings = manualContext.Mappings;
-            Client = mockClient.Object;
-        }
-
         internal static void FakeAttributeClient(TestAction test, string json = "{}")
         {
-            var mock = new Mock<DbContext>(Client, AttributeMappings) {CallBase = true};
+            var clientMock = new Mock<IFaunaClient>();
+            var baseContext = CreateAttributeContext(clientMock.Object);
+            var mock = new Mock<DbContext>(clientMock, baseContext.Mappings) {CallBase = true};
+
             Expr lastQuery = null;
             mock.Setup(a => a.Query<object>(It.IsAny<Expr>())).Returns((Expr q) =>
             {
@@ -45,7 +30,10 @@ namespace FaunaDB.Client.LINQ.Tests
 
         internal static void FakeManualClient(TestAction test, string json = "{}")
         {
-            var mock = new Mock<DbContext>(Client, ManualMappings) { CallBase = true };
+            var clientMock = new Mock<IFaunaClient>();
+            var baseContext = CreateMappingContext(clientMock.Object);
+            var mock = new Mock<DbContext>(clientMock, baseContext.Mappings) { CallBase = true };
+
             Expr lastQuery = null;
             mock.Setup(a => a.Query<object>(It.IsAny<Expr>())).Returns((Expr q) =>
             {
@@ -58,7 +46,10 @@ namespace FaunaDB.Client.LINQ.Tests
 
         internal static void FakeAttributeClient<T>(TestAction test, string json = "{}")
         {
-            var mock = new Mock<DbContext>(Client, AttributeMappings) { CallBase = true };
+            var clientMock = new Mock<IFaunaClient>();
+            var baseContext = CreateAttributeContext(clientMock.Object);
+            var mock = new Mock<DbContext>(clientMock, baseContext.Mappings) { CallBase = true };
+
             Expr lastQuery = null;
             mock.Setup(a => a.Query<T>(It.IsAny<Expr>())).Returns((Expr q) =>
             {
@@ -71,7 +62,10 @@ namespace FaunaDB.Client.LINQ.Tests
 
         internal static void FakeManualClient<T>(TestAction test, string json = "{}")
         {
-            var mock = new Mock<DbContext>(Client, ManualMappings) { CallBase = true };
+            var clientMock = new Mock<IFaunaClient>();
+            var baseContext = CreateMappingContext(clientMock.Object);
+            var mock = new Mock<DbContext>(clientMock, baseContext.Mappings) { CallBase = true };
+
             Expr lastQuery = null;
             mock.Setup(a => a.Query<T>(It.IsAny<Expr>())).Returns((Expr q) =>
             {
