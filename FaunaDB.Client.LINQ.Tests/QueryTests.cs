@@ -1,18 +1,17 @@
 ﻿using System;
-using System.ComponentModel;
 using System.Linq;
-using FaunaDB.LINQ.Client;
+using FaunaDB.LINQ;
 using FaunaDB.LINQ.Extensions;
 using FaunaDB.LINQ.Query;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using NUnit.Framework;
 using static FaunaDB.Query.Language;
 using ListSortDirection = FaunaDB.LINQ.Types.ListSortDirection;
 
 namespace FaunaDB.Client.LINQ.Tests
 {
-    [TestClass]
+    [TestFixture]
     public class QueryTests
     {
         public QueryTests()
@@ -23,15 +22,18 @@ namespace FaunaDB.Client.LINQ.Tests
                 Formatting = Formatting.None,
                 ContractResolver = new CamelCasePropertyNamesContractResolver()
             };
+
+            typeof(QueryTests).GetProperties();
         }
 
-        [TestMethod]
+        [Test]
         public void SimplePaginateTest()
         {
-            IsolationUtils.FakeClient(SimplePaginateTest_Run);
+            IsolationUtils.FakeAttributeClient(SimplePaginateTest_Run);
+            IsolationUtils.FakeManualClient(SimplePaginateTest_Run);
         }
 
-        private static void SimplePaginateTest_Run(IFaunaClient client, ref Expr lastQuery)
+        private static void SimplePaginateTest_Run(IDbContext client, ref Expr lastQuery)
         {
             var q = client.Query<ReferenceModel>(a => a.Indexed1 == "test1").Paginate(size: 5);
             var manual = Paginate(Map(Match(Index("index_1"), Arr("test1")), arg0 => Get(arg0)), size: 5);
@@ -41,13 +43,14 @@ namespace FaunaDB.Client.LINQ.Tests
             Assert.IsTrue(JsonConvert.SerializeObject(lastQuery) == JsonConvert.SerializeObject(manual));
         }
 
-        [TestMethod]
+        [Test]
         public void FromRefPaginateTest()
         {
-            IsolationUtils.FakeClient(FromRefPaginateTest_Run);
+            IsolationUtils.FakeAttributeClient(FromRefPaginateTest_Run);
+            IsolationUtils.FakeManualClient(FromRefPaginateTest_Run);
         }
 
-        private static void FromRefPaginateTest_Run(IFaunaClient client, ref Expr lastQuery)
+        private static void FromRefPaginateTest_Run(IDbContext client, ref Expr lastQuery)
         {
             var q = client.Query<ReferenceModel>(a => a.Indexed1 == "test1").Paginate(size: 5, fromRef: "testRef");
             var manual = Paginate(Map(Match(Index("index_1"), Arr("test1")), arg0 => Get(arg0)), size: 5, after: Ref("testRef"));
@@ -57,13 +60,14 @@ namespace FaunaDB.Client.LINQ.Tests
             Assert.IsTrue(JsonConvert.SerializeObject(lastQuery) == JsonConvert.SerializeObject(manual));
         }
 
-        [TestMethod]
+        [Test]
         public void SortDirectionPaginateTest()
         {
-            IsolationUtils.FakeClient(SortDirectionPaginateTest_Run);
+            IsolationUtils.FakeAttributeClient(SortDirectionPaginateTest_Run);
+            IsolationUtils.FakeManualClient(SortDirectionPaginateTest_Run);
         }
 
-        private static void SortDirectionPaginateTest_Run(IFaunaClient client, ref Expr lastQuery)
+        private static void SortDirectionPaginateTest_Run(IDbContext client, ref Expr lastQuery)
         {
             var q = client.Query<ReferenceModel>(a => a.Indexed1 == "test1").Paginate(size: 5, fromRef: "testRef",
                 sortDirection: ListSortDirection.Descending);
@@ -75,13 +79,14 @@ namespace FaunaDB.Client.LINQ.Tests
             Assert.IsTrue(JsonConvert.SerializeObject(lastQuery) == JsonConvert.SerializeObject(manual));
         }
 
-        [TestMethod]
+        [Test]
         public void DateTimePaginateTest()
         {
-            IsolationUtils.FakeClient(DateTimePaginateTest_Run);
+            IsolationUtils.FakeAttributeClient(DateTimePaginateTest_Run);
+            IsolationUtils.FakeManualClient(DateTimePaginateTest_Run);
         }
 
-        private static void DateTimePaginateTest_Run(IFaunaClient client, ref Expr lastQuery)
+        private static void DateTimePaginateTest_Run(IDbContext client, ref Expr lastQuery)
         {
             var q = client.Query<ReferenceModel>(a => a.Indexed1 == "test1").Paginate(size: 5, timeStamp: new DateTime(2017, 1, 1));
 
@@ -92,13 +97,14 @@ namespace FaunaDB.Client.LINQ.Tests
             Assert.IsTrue(JsonConvert.SerializeObject(lastQuery) == JsonConvert.SerializeObject(manual));
         }
 
-        [TestMethod]
+        [Test]
         public void AllOptionsPaginateTest()
         {
-            IsolationUtils.FakeClient(AllOptionsPaginateTest_Run);
+            IsolationUtils.FakeAttributeClient(AllOptionsPaginateTest_Run);
+            IsolationUtils.FakeManualClient(AllOptionsPaginateTest_Run);
         }
 
-        private static void AllOptionsPaginateTest_Run(IFaunaClient client, ref Expr lastQuery)
+        private static void AllOptionsPaginateTest_Run(IDbContext client, ref Expr lastQuery)
         {
             var q = client.Query<ReferenceModel>(a => a.Indexed1 == "test1").Paginate(size: 5, timeStamp: new DateTime(2017, 1, 1), fromRef: "testRef", sortDirection: ListSortDirection.Descending);
 
@@ -109,13 +115,14 @@ namespace FaunaDB.Client.LINQ.Tests
             Assert.IsTrue(JsonConvert.SerializeObject(lastQuery) == JsonConvert.SerializeObject(manual));
         }
 
-        [TestMethod]
+        [Test]
         public void CatchAllWhereTest()
         {
-            IsolationUtils.FakeClient(CatchAllWhereTest_Run);
+            IsolationUtils.FakeAttributeClient(CatchAllWhereTest_Run);
+            IsolationUtils.FakeManualClient(CatchAllWhereTest_Run);
         }
 
-        private static void CatchAllWhereTest_Run(IFaunaClient client, ref Expr lastQuery)
+        private static void CatchAllWhereTest_Run(IDbContext client, ref Expr lastQuery)
         {
             var i1 = 1;
             var i2 = 2;
@@ -147,13 +154,14 @@ namespace FaunaDB.Client.LINQ.Tests
             Assert.IsTrue(JsonConvert.SerializeObject(lastQuery) == JsonConvert.SerializeObject(manual));
         }
 
-        [TestMethod]
+        [Test]
         public void SelectStringConcatTest()
         {
-            IsolationUtils.FakeClient(SelectStringConcatTest_Run);
+            IsolationUtils.FakeAttributeClient(SelectStringConcatTest_Run);
+            IsolationUtils.FakeManualClient(SelectStringConcatTest_Run);
         }
 
-        private static void SelectStringConcatTest_Run(IFaunaClient client, ref Expr lastQuery)
+        private static void SelectStringConcatTest_Run(IDbContext client, ref Expr lastQuery)
         {
             var q = client.Query<ReferenceModel>(a => a.Indexed1 == "test1").Select(a => a.Indexed1 + "concat");
 
@@ -165,13 +173,14 @@ namespace FaunaDB.Client.LINQ.Tests
             Assert.IsTrue(JsonConvert.SerializeObject(lastQuery) == JsonConvert.SerializeObject(manual));
         }
 
-        [TestMethod]
+        [Test]
         public void MemberInitTest()
         {
-            IsolationUtils.FakeClient(MemberInitTest_Run);
+            IsolationUtils.FakeAttributeClient(MemberInitTest_Run);
+            IsolationUtils.FakeManualClient(MemberInitTest_Run);
         }
 
-        private static void MemberInitTest_Run(IFaunaClient client, ref Expr lastQuery)
+        private static void MemberInitTest_Run(IDbContext client, ref Expr lastQuery)
         {
             var q = client.Query<ReferenceModel>(a => a.Indexed1 == "test1").Where(a => a == new ReferenceModel {Indexed1 = "test1"});
             var manual = Filter(Map(Match(Index("index_1"), Arr("test1")), arg0 => Get(arg0)), arg1 => EqualsFn(arg1, Obj("indexed1", "test1", "indexed2", Null())));
@@ -181,13 +190,14 @@ namespace FaunaDB.Client.LINQ.Tests
             Assert.IsTrue(JsonConvert.SerializeObject(lastQuery) == JsonConvert.SerializeObject(manual));
         }
 
-        [TestMethod]
+        [Test]
         public void ChainedQueryTest()
         {
-            IsolationUtils.FakeClient(ChainedQueryTest_Run);
+            IsolationUtils.FakeAttributeClient(ChainedQueryTest_Run);
+            IsolationUtils.FakeManualClient(ChainedQueryTest_Run);
         }
 
-        public static void ChainedQueryTest_Run(IFaunaClient client, ref Expr lastQuery)
+        public static void ChainedQueryTest_Run(IDbContext client, ref Expr lastQuery)
         {
             var q = client.Query<ReferenceModel>(a => a.Indexed1 == "test1").Where(a => a.Indexed1 == "test1").Select(a => a.Indexed1);
 

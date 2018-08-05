@@ -34,7 +34,7 @@ namespace FaunaDB.LINQ.Types
 
         public bool Equals(ValueTuple<T1, T2> other)
         {
-            throw new NotImplementedException();
+            return (Item1?.Equals(other.Item1) ?? other.Item1 == null) && (Item2?.Equals(other.Item2) ?? other.Item2 == null);
         }
 
         public static bool operator ==(CompositeIndex<T1, T2> index, ValueTuple<T1, T2> other)

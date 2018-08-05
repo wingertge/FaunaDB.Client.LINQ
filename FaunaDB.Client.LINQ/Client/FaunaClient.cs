@@ -22,12 +22,12 @@ namespace FaunaDB.LINQ.Client
             _clientIo = clientIO ?? new DefaultClientIO(new Uri( $"{scheme}://{domain}:{port}"), timeout ?? TimeSpan.FromSeconds(60.0), secret);
         }
 
-        public async Task<T> Query<T>(Expr query)
+        public async Task<RequestResult> Query(Expr query)
         {
             var json = JsonConvert.SerializeObject(query, Settings);
             var result = await _clientIo.DoRequest(HttpMethod.Post, "", json);
             RaiseForStatusCode(result);
-            return result.Decode<T>();
+            return result;
         }
 
         internal struct ErrorsWrapper

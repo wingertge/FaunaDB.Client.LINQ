@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -29,20 +28,20 @@ namespace FaunaDB.LINQ.Query
             { (typeof(Tuple), "Create"), a => a }
         };
 
-        public static Expr Parse(object selector, Expression expr)
+        public static Expr Parse(object selector, Expression expr, IDbContext context)
         {
             _lambdaIndex = 0;
-            return (Expr)WalkExpression(selector, expr);
+            return (Expr)WalkExpression(selector, expr, context);
         }
 
-        private static object WalkExpression(object selector, Expression expr)
+        private static object WalkExpression(object selector, Expression expr, IDbContext context)
         {
             if (!(expr is MethodCallExpression)) return selector;
             var methodExpr = (MethodCallExpression) expr;
 
             var argsArr = methodExpr.Arguments;
             var next = argsArr[0];
-            var rest = WalkExpression(selector, next);
+            var rest = WalkExpression(selector, next, context);
             var args = argsArr.Skip(1).Take(argsArr.Count - 1).ToArray();
 
             var method = methodExpr.Method;
@@ -51,10 +50,10 @@ namespace FaunaDB.LINQ.Query
             switch (method.Name)
             {
                 case "Where":
-                    current = HandleWhere(args, rest);
+                    current = HandleWhere(args, rest, context);
                     break;
                 case "Select":
-                    current = HandleSelect(args, rest);
+                    current = HandleSelect(args, rest, context);
                     break;
                 case "Paginate":
                     current = HandlePaginate(args, rest);
@@ -70,13 +69,13 @@ namespace FaunaDB.LINQ.Query
                     break;
                 case "Include":
                 case "AlsoInclude":
-                    current = HandleInclude(args, rest);
+                    current = HandleInclude(args, rest, context);
                     break;
                 case "FromQuery":
                     current = (Expr) ((ConstantExpression) args[0]).Value;
                     break;
                 case "At":
-                    current = Language.At(((DateTime) ((ConstantExpression) args[0]).Value).ToFaunaObjOrPrimitive(), rest);
+                    current = Language.At(((DateTime) ((ConstantExpression) args[0]).Value).ToFaunaObjOrPrimitive(context), rest);
                     break;
                 default:
                     throw new ArgumentException($"Unsupported method {method}.");
@@ -85,7 +84,7 @@ namespace FaunaDB.LINQ.Query
             return current;
         }
 
-        private static object HandleInclude(IReadOnlyList<Expression> args, object rest)
+        private static object HandleInclude(IReadOnlyList<Expression> args, object rest, IDbContext context)
         {
             var lambdaArgName = $"arg{++_lambdaIndex}";
             var lambda = (LambdaExpression)args[0];
@@ -95,11 +94,12 @@ namespace FaunaDB.LINQ.Query
             var propInfo = (PropertyInfo) memberExpr.Member;
             var definingType = propInfo.DeclaringType;
 
-            var fields = definingType.GetProperties().Where(a => a.GetFaunaFieldName() != "ref" && a.GetFaunaFieldName() != "ts")
-                .ToDictionary(a => a.GetFaunaFieldName().Replace("data.", ""),
+            var mappings = context.Mappings[definingType];
+            var fields = definingType.GetProperties().Where(a => mappings[a].Type != DbPropertyType.Key && mappings[a].Type != DbPropertyType.Timestamp)
+                .ToDictionary(a => mappings[a].Name,
                     a =>
                     {
-                        var fieldSelector = Language.Select(a.GetFaunaFieldPath(), Language.Var(lambdaArgName));
+                        var fieldSelector = Language.Select(mappings[a].GetFaunaFieldPath(), Language.Var(lambdaArgName));
                         return a.Name == propInfo.Name
                             ? typeof(IEnumerable).IsAssignableFrom(propInfo.PropertyType)
                                 ? Language.Map(fieldSelector,
@@ -129,30 +129,30 @@ namespace FaunaDB.LINQ.Query
                     before: string.IsNullOrEmpty(fromRef) ? null : Language.Ref(fromRef));
         }
 
-        private static object HandleSelect(IReadOnlyList<Expression> args, object rest)
+        private static object HandleSelect(IReadOnlyList<Expression> args, object rest, IDbContext context)
         {
             var lambda = args[0] is UnaryExpression unary
                 ? (LambdaExpression) unary.Operand
                 : (LambdaExpression) args[0];
             var argName = $"arg{++_lambdaIndex}";
 
-            return Language.Map(rest, Language.Lambda(argName, WalkComplexExpression(lambda.Body, argName)));
+            return Language.Map(rest, Language.Lambda(argName, WalkComplexExpression(lambda.Body, argName, context)));
         }
 
-        private static object HandleWhere(IReadOnlyList<Expression> args, object rest)
+        private static object HandleWhere(IReadOnlyList<Expression> args, object rest, IDbContext context)
         {
             var lambda = args[0] is LambdaExpression lexp ? lexp : (LambdaExpression)((UnaryExpression)args[0]).Operand;
             var body = (BinaryExpression) lambda.Body;
-            return Language.Filter(rest, Language.Lambda($"arg{++_lambdaIndex}", WalkComplexExpression(body, $"arg{_lambdaIndex}")));
+            return Language.Filter(rest, Language.Lambda($"arg{++_lambdaIndex}", WalkComplexExpression(body, $"arg{_lambdaIndex}", context)));
         }
 
-        private static object WalkComplexExpression(Expression expression, string varName)
+        private static object WalkComplexExpression(Expression expression, string varName, IDbContext context)
         {
             switch (expression)
             {
                 case BinaryExpression binary:
-                    var left = WalkComplexExpression(binary.Left, varName);
-                    var right = WalkComplexExpression(binary.Right, varName);
+                    var left = WalkComplexExpression(binary.Left, varName, context);
+                    var right = WalkComplexExpression(binary.Right, varName, context);
                     if (binary.Method != null)
                     {
                         if (BuiltInBinaryMethods.ContainsKey((binary.Method.DeclaringType, binary.Method.Name)))
@@ -204,15 +204,15 @@ namespace FaunaDB.LINQ.Query
                             throw new UnsupportedMethodException(binary.Method?.Name ?? binary.NodeType.ToString());
                     }
                 case BlockExpression block:
-                    return Language.Do(block.Expressions.Select(a => WalkComplexExpression(a, varName)).Cast<Expr>().ToArray());
+                    return Language.Do(block.Expressions.Select(a => WalkComplexExpression(a, varName, context)).Cast<Expr>().ToArray());
                 case ConditionalExpression conditional:
-                    return Language.If(WalkComplexExpression(conditional.Test, varName),
-                        WalkComplexExpression(conditional.IfTrue, varName),
-                        WalkComplexExpression(conditional.IfFalse, varName));
+                    return Language.If(WalkComplexExpression(conditional.Test, varName, context),
+                        WalkComplexExpression(conditional.IfTrue, varName, context),
+                        WalkComplexExpression(conditional.IfFalse, varName, context));
                 case ConstantExpression constant:
-                    return constant.Value.ToFaunaObjOrPrimitive();
+                    return constant.Value.ToFaunaObjOrPrimitive(context);
                 case DefaultExpression defaultExp:
-                    return Expression.Lambda(defaultExp).Compile().DynamicInvoke().ToFaunaObjOrPrimitive();
+                    return Expression.Lambda(defaultExp).Compile().DynamicInvoke().ToFaunaObjOrPrimitive(context);
                 case GotoExpression _:
                 case IndexExpression _:
                     throw new UnsupportedMethodException("Goto", "Seriously?");
@@ -221,7 +221,7 @@ namespace FaunaDB.LINQ.Query
                     foreach (var initializer in listInit.Initializers)
                     {
                         var args = initializer.Arguments;
-                        if(args.Count == 1) result.Add(WalkComplexExpression(args[0], varName));
+                        if(args.Count == 1) result.Add(WalkComplexExpression(args[0], varName, context));
                         else throw new UnsupportedMethodException("Tuple collection initializer not supported.");
                     }
                     return result.ToArray();
@@ -232,70 +232,74 @@ namespace FaunaDB.LINQ.Query
                             switch (member.Expression)
                             {
                                 case ConstantExpression constRoot:
-                                    return field.GetValue(constRoot.Value).ToFaunaObjOrPrimitive();
+                                    return field.GetValue(constRoot.Value).ToFaunaObjOrPrimitive(context);
                                 case ParameterExpression _:
                                     throw new InvalidOperationException("Can't use selector on field of model. Use a property instead.");
                                 case MemberExpression memberRoot:
-                                    return WalkComplexExpression(memberRoot, varName);
+                                    return WalkComplexExpression(memberRoot, varName, context);
                                 default:
                                     throw new ArgumentOutOfRangeException(); ;
                             }
                         case PropertyInfo property:
+                            var mapping = context.Mappings[property.DeclaringType][property];
                             switch (member.Expression)
                             {
                                 case ConstantExpression constRoot:
-                                    return property.GetValue(constRoot.Value).ToFaunaObjOrPrimitive();
+                                    return property.GetValue(constRoot.Value).ToFaunaObjOrPrimitive(context);
                                 case ParameterExpression _:
-                                    var refAttr = property.GetCustomAttribute<ReferenceAttribute>();
-                                    if(refAttr == null) return Language.Select(property.GetFaunaFieldPath(), Language.Var(varName));
+                                    var isReference = mapping.Type == DbPropertyType.Reference;
+                                    if(!isReference) return Language.Select(mapping.GetFaunaFieldPath(), Language.Var(varName));
                                     return typeof(IEnumerable).IsAssignableFrom(property.PropertyType)
                                         ? Language.Map(
-                                            Language.Select(property.GetFaunaFieldPath(), Language.Var(varName)),
+                                            Language.Select(mapping.GetFaunaFieldPath(), Language.Var(varName)),
                                             Language.Lambda($"arg{++_lambdaIndex}",
                                                 Language.Map(Language.Var($"arg{_lambdaIndex}"),
                                                     Language.Lambda($"arg{++_lambdaIndex}", Language.Get(Language.Var($"arg{_lambdaIndex}")))
                                                 )))
                                         : Language.Map(
-                                            Language.Select(property.GetFaunaFieldPath(), Language.Var(varName)),
+                                            Language.Select(mapping.GetFaunaFieldPath(), Language.Var(varName)),
                                             Language.Lambda($"arg{++_lambdaIndex}", Language.Get($"arg{_lambdaIndex}")));
                                 case MemberExpression memberRoot:
                                     switch (memberRoot.Member)
                                     {
                                         case FieldInfo _:
-                                            return WalkComplexExpression(memberRoot, varName);
+                                            return WalkComplexExpression(memberRoot, varName, context);
                                         case PropertyInfo prop:
                                             return typeof(IReferenceType).IsAssignableFrom(prop.PropertyType)
                                                 ? Language.Map(
-                                                    Language.Select(property.GetFaunaFieldPath(),
-                                                        WalkComplexExpression(memberRoot, varName)),
+                                                    Language.Select(mapping.GetFaunaFieldPath(),
+                                                        WalkComplexExpression(memberRoot, varName, context)),
                                                     Language.Lambda($"arg{++_lambdaIndex}", Language.Get(Language.Var($"arg{_lambdaIndex}"))))
-                                                : Language.Select(property.GetFaunaFieldPath(), WalkComplexExpression(memberRoot, varName));
+                                                : Language.Select(mapping.GetFaunaFieldPath(), WalkComplexExpression(memberRoot, varName, context));
                                         default:
                                             throw new ArgumentOutOfRangeException();
                                     }
                                 default:
-                                    return WalkComplexExpression(expression, varName);
+                                    return WalkComplexExpression(expression, varName, context);
                             }
                         default:
                             throw new ArgumentOutOfRangeException(); ;
                     }
                 case MemberInitExpression memberInit:
                     var baseObj = memberInit.NewExpression.Constructor.Invoke(new object[] { });
-                    var members = baseObj.GetType().GetProperties().Where(a =>
+                    var baseType = baseObj.GetType();
+                    var mappings = context.Mappings[baseType];
+                    var members = baseType.GetProperties().Where(a =>
                     {
                         var propType = a.PropertyType;
                         if (propType.Name.StartsWith("CompositeIndex")) return false;
-                        var propName = a.GetFaunaFieldName();
-                        return propName != "ref" && propName != "ts";
-                    }).ToDictionary(a => a.GetFaunaFieldName().Replace("data.", ""), a => a.GetValue(baseObj).ToFaunaObjOrPrimitive());
+                        var propMapping = mappings[a];
+                        return propMapping.Type != DbPropertyType.Key && propMapping.Type != DbPropertyType.Timestamp;
+                    }).ToDictionary(a => a.GetFaunaFieldName().Replace("data.", ""), a => a.GetValue(baseObj).ToFaunaObjOrPrimitive(context));
                     foreach (var binding in memberInit.Bindings.OfType<MemberAssignment>())
                     {
                         var propInfo = (PropertyInfo)binding.Member;
+                        var mapping = mappings[propInfo];
                         var propType = propInfo.PropertyType;
                         if (propType.Name.StartsWith("CompositeIndex")) continue;
                         var propName = propInfo.GetFaunaFieldName();
-                        if (propName == "ref" || propName == "ts") continue;
-                        members[propName.Replace("data.", "")] = WalkComplexExpression(binding.Expression, varName);
+                        if (mapping.Type == DbPropertyType.Key || mapping.Type == DbPropertyType.Timestamp) continue;
+                        members[propName.Replace("data.", "")] = WalkComplexExpression(binding.Expression, varName, context);
                     }
 
                     return Language.Obj(members);
@@ -313,19 +317,19 @@ namespace FaunaDB.LINQ.Query
                         throw new ArgumentException("Can't call member method in FaunaDB query.");
 
                     if (BuiltInFunctions.ContainsKey((methodInfo.DeclaringType, methodInfo.Name)))
-                        return BuiltInFunctions[(methodInfo.DeclaringType, methodInfo.Name)](methodCall.Arguments.Select(a => WalkComplexExpression(a, varName)).ToArray());
+                        return BuiltInFunctions[(methodInfo.DeclaringType, methodInfo.Name)](methodCall.Arguments.Select(a => WalkComplexExpression(a, varName, context)).ToArray());
 
                     var dbFunctionAttr = methodInfo.GetCustomAttribute<DbFunctionAttribute>();
                     if(dbFunctionAttr == null) throw new UnsupportedMethodException(methodInfo.Name, "If this is a user defined function, add the DbFunction attribute.");
                     var functionRef = Language.Function(dbFunctionAttr.Name);
-                    return Language.Call(functionRef, methodCall.Arguments.Select(a => WalkComplexExpression(a, varName)).ToArray());
+                    return Language.Call(functionRef, methodCall.Arguments.Select(a => WalkComplexExpression(a, varName, context)).ToArray());
                 case NewArrayExpression newArray:
                     switch (newArray.NodeType)
                     {
                         case ExpressionType.NewArrayBounds:
                             return Activator.CreateInstance(newArray.Type.MakeArrayType(), (int)((ConstantExpression)newArray.Expressions[0]).Value);
                         case ExpressionType.NewArrayInit:
-                            return newArray.Expressions.Select(a => WalkComplexExpression(a, varName));
+                            return newArray.Expressions.Select(a => WalkComplexExpression(a, varName, context));
                         default:
                             throw new ArgumentOutOfRangeException();
                     }
@@ -337,7 +341,7 @@ namespace FaunaDB.LINQ.Query
 
                     var parameters = FixConstantParameters(newExpr.Arguments);
                     var obj = newExpr.Constructor.Invoke(parameters);
-                    return obj.ToFaunaObjOrPrimitive();
+                    return obj.ToFaunaObjOrPrimitive(context);
                 case ParameterExpression _:
                     return Language.Var(varName);
                 case SwitchExpression _:
@@ -364,11 +368,11 @@ namespace FaunaDB.LINQ.Query
                     switch (unary.NodeType)
                     {
                         case ExpressionType.Not:
-                            return Language.Not(WalkComplexExpression(unary.Operand, varName));
+                            return Language.Not(WalkComplexExpression(unary.Operand, varName, context));
                         case ExpressionType.Quote:
                         case ExpressionType.Convert:
                         case ExpressionType.ConvertChecked:
-                            return WalkComplexExpression(unary.Operand, varName);
+                            return WalkComplexExpression(unary.Operand, varName, context);
                         case ExpressionType.Negate:
                         case ExpressionType.NegateChecked:
                             throw new UnsupportedMethodException(unary.NodeType.ToString(), CurrentlyUnsupportedError);

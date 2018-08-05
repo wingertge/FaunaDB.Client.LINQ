@@ -1,15 +1,16 @@
 using System;
-using FaunaDB.LINQ.Client;
+using System.Reflection;
+using FaunaDB.LINQ;
 using FaunaDB.LINQ.Extensions;
 using FaunaDB.LINQ.Query;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using NUnit.Framework;
 using static FaunaDB.Query.Language;
 
 namespace FaunaDB.Client.LINQ.Tests
 {
-    [TestClass]
+    [TestFixture]
     public class ClientExtensionTests
     {
         public ClientExtensionTests()
@@ -22,13 +23,14 @@ namespace FaunaDB.Client.LINQ.Tests
             };
         }
 
-        [TestMethod]
+        [Test]
         public void CompositeWithArgsTest()
         {
-            IsolationUtils.FakeClient(CompositeWithArgsTest_Run);
+            IsolationUtils.FakeAttributeClient(CompositeWithArgsTest_Run);
+            IsolationUtils.FakeManualClient(CompositeWithArgsTest_Run);
         }
 
-        private static void CompositeWithArgsTest_Run(IFaunaClient client, ref Expr lastQuery)
+        private static void CompositeWithArgsTest_Run(IDbContext client, ref Expr lastQuery)
         {
             var q = client.Query<ReferenceModel>(a => a.CompositeIndex, "test1", "test2");
 
@@ -40,13 +42,14 @@ namespace FaunaDB.Client.LINQ.Tests
             Assert.IsTrue(JsonConvert.SerializeObject(parsed) == JsonConvert.SerializeObject(manual));
         } 
 
-        [TestMethod]
+        [Test]
         public void CompositeWithTupleTest()
         {
-            IsolationUtils.FakeClient(CompositeWithTupleTest_Run);
+            IsolationUtils.FakeAttributeClient(CompositeWithTupleTest_Run);
+            IsolationUtils.FakeManualClient(CompositeWithTupleTest_Run);
         }
 
-        private static void CompositeWithTupleTest_Run(IFaunaClient client, ref Expr lastQuery)
+        private static void CompositeWithTupleTest_Run(IDbContext client, ref Expr lastQuery)
         {
             var q = client.Query<ReferenceModel>(a => a.CompositeIndex == Tuple.Create("test1", "test2"));
 
@@ -56,13 +59,14 @@ namespace FaunaDB.Client.LINQ.Tests
             Assert.IsTrue(JsonConvert.SerializeObject(lastQuery) == JsonConvert.SerializeObject(manual));
         }
 
-        [TestMethod]
+        [Test]
         public void SingleBooleanSelectorTest()
         {
-            IsolationUtils.FakeClient(SingleBooleanSelectorTest_Run);
+            IsolationUtils.FakeAttributeClient(SingleBooleanSelectorTest_Run);
+            IsolationUtils.FakeManualClient(SingleBooleanSelectorTest_Run);
         }
 
-        private static void SingleBooleanSelectorTest_Run(IFaunaClient client, ref Expr lastQuery)
+        private static void SingleBooleanSelectorTest_Run(IDbContext client, ref Expr lastQuery)
         {
             var q = client.Query<ReferenceModel>(a => a.Indexed1 == "test2");
             q.Provider.Execute<object>(q.Expression);
@@ -72,13 +76,14 @@ namespace FaunaDB.Client.LINQ.Tests
             Assert.IsTrue(JsonConvert.SerializeObject(parsed) == JsonConvert.SerializeObject(manual));
         }
 
-        [TestMethod]
+        [Test]
         public void MultiSelectorTest()
         {
-            IsolationUtils.FakeClient(MultiSelectorTest_Run);
+            IsolationUtils.FakeAttributeClient(MultiSelectorTest_Run);
+            IsolationUtils.FakeManualClient(MultiSelectorTest_Run);
         }
 
-        private static void MultiSelectorTest_Run(IFaunaClient client, ref Expr lastQuery)
+        private static void MultiSelectorTest_Run(IDbContext client, ref Expr lastQuery)
         {
             var q1 = client.Query<ReferenceModel>(a => a.Indexed1 == "test1" && a.Indexed2 == "test2");
             var q2 = client.Query<ReferenceModel>(a => a.Indexed1 == "test1" || a.Indexed2 == "test2");
@@ -93,13 +98,14 @@ namespace FaunaDB.Client.LINQ.Tests
             Assert.IsTrue(JsonConvert.SerializeObject(lastQuery) == JsonConvert.SerializeObject(manual2));
         }
 
-        [TestMethod]
+        [Test]
         public void RefQueryTest()
         {
-            IsolationUtils.FakeClient(RefQueryTest_Run);
+            IsolationUtils.FakeAttributeClient(RefQueryTest_Run);
+            IsolationUtils.FakeManualClient(RefQueryTest_Run);
         }
 
-        private static void RefQueryTest_Run(IFaunaClient client, ref Expr lastQuery)
+        private static void RefQueryTest_Run(IDbContext client, ref Expr lastQuery)
         {
             var q = client.Query<ReferenceModel>("ref1");
 
@@ -109,13 +115,14 @@ namespace FaunaDB.Client.LINQ.Tests
             Assert.IsTrue(JsonConvert.SerializeObject(lastQuery) == JsonConvert.SerializeObject(manual));
         }
 
-        [TestMethod]
+        [Test]
         public void CreateTest()
         {
-            IsolationUtils.FakeClient<ReferenceModel>(CreateTest_Run);
+            IsolationUtils.FakeAttributeClient<ReferenceModel>(CreateTest_Run);
+            IsolationUtils.FakeManualClient<ReferenceModel>(CreateTest_Run);
         }
 
-        private static void CreateTest_Run(IFaunaClient client, ref Expr lastQuery)
+        private static void CreateTest_Run(IDbContext client, ref Expr lastQuery)
         {
             var model = new ReferenceModel {Indexed1 = "test1", Indexed2 = "test2"};
             var q = client.Create(model).Result;
@@ -125,29 +132,31 @@ namespace FaunaDB.Client.LINQ.Tests
             Assert.IsTrue(JsonConvert.SerializeObject(lastQuery) == JsonConvert.SerializeObject(manual));
         }
 
-        [TestMethod]
+        [Test]
         public void UpdateTest()
         {
-            IsolationUtils.FakeClient<ReferenceModel>(UpdateTest_Run);
+            IsolationUtils.FakeAttributeClient<ReferenceModel>(UpdateTest_Run);
+            IsolationUtils.FakeManualClient<ReferenceModel>(UpdateTest_Run);
         }
 
-        private static void UpdateTest_Run(IFaunaClient client, ref Expr lastQuery)
+        private static void UpdateTest_Run(IDbContext client, ref Expr lastQuery)
         {
             var model = new ReferenceModel {Id = "testId", Indexed1 = "test1", Indexed2 = "test2"};
             var q = client.Update(model).Result;
 
-            /*var manual = Update(Ref(model.Id), model.ToFaunaObj());
+            var manual = Language.Update(Language.Ref(model.Id), model.ToFaunaObj(client));
 
-            Assert.IsTrue(JsonConvert.SerializeObject(lastQuery) == JsonConvert.SerializeObject(manual));*/
+            Assert.IsTrue(JsonConvert.SerializeObject(lastQuery) == JsonConvert.SerializeObject(manual));
         }
 
-        [TestMethod]
+        [Test]
         public void UpsertTest()
         {
-            IsolationUtils.FakeClient<ReferenceModel>(UpsertTest_Run);
+            IsolationUtils.FakeAttributeClient<ReferenceModel>(UpsertTest_Run);
+            IsolationUtils.FakeManualClient<ReferenceModel>(UpsertTest_Run);
         }
 
-        private static void UpsertTest_Run(IFaunaClient client, ref Expr lastQuery)
+        private static void UpsertTest_Run(IDbContext client, ref Expr lastQuery)
         {
             var model = new ReferenceModel { Id = "testId", Indexed1 = "test1", Indexed2 = "test2" };
             var q = client.Upsert(model);
@@ -158,13 +167,14 @@ namespace FaunaDB.Client.LINQ.Tests
             Assert.IsTrue(JsonConvert.SerializeObject(lastQuery) == JsonConvert.SerializeObject(manual));
         }
 
-        [TestMethod]
+        [Test]
         public void DeleteTest()
         {
-            IsolationUtils.FakeClient(DeleteTest_Run);
+            IsolationUtils.FakeAttributeClient(DeleteTest_Run);
+            IsolationUtils.FakeManualClient(DeleteTest_Run);
         }
 
-        private static void DeleteTest_Run(IFaunaClient client, ref Expr lastQuery)
+        private static void DeleteTest_Run(IDbContext client, ref Expr lastQuery)
         {
             var model = new ReferenceModel { Id = "testId", Indexed1 = "test1", Indexed2 = "test2" };
             var q = client.Delete(model);
@@ -174,13 +184,14 @@ namespace FaunaDB.Client.LINQ.Tests
             Assert.IsTrue(JsonConvert.SerializeObject(lastQuery) == JsonConvert.SerializeObject(manual));
         }
 
-        [TestMethod]
+        [Test]
         public void GetTest()
         {
-            IsolationUtils.FakeClient<ReferenceModel>(GetTest_Run);   
+            IsolationUtils.FakeAttributeClient<ReferenceModel>(GetTest_Run);
+            IsolationUtils.FakeManualClient<ReferenceModel>(GetTest_Run);
         }
 
-        private static void GetTest_Run(IFaunaClient client, ref Expr lastQuery)
+        private static void GetTest_Run(IDbContext client, ref Expr lastQuery)
         {
             var q = client.Get<ReferenceModel>("test1");
 
@@ -189,13 +200,14 @@ namespace FaunaDB.Client.LINQ.Tests
             Assert.IsTrue(JsonConvert.SerializeObject(lastQuery) == JsonConvert.SerializeObject(manual));
         }
 
-        [TestMethod]
+        [Test]
         public void UpsertCompositeIndexWithArgsTest()
         {
-            IsolationUtils.FakeClient<ReferenceModel>(UpsertCompositeIndexWithArgsTest_Run);
+            IsolationUtils.FakeAttributeClient<ReferenceModel>(UpsertCompositeIndexWithArgsTest_Run);
+            IsolationUtils.FakeManualClient<ReferenceModel>(UpsertCompositeIndexWithArgsTest_Run);
         }
 
-        private static void UpsertCompositeIndexWithArgsTest_Run(IFaunaClient client, ref Expr lastQuery)
+        private static void UpsertCompositeIndexWithArgsTest_Run(IDbContext client, ref Expr lastQuery)
         {
             var model = new ReferenceModel { Indexed1 = "test1", Indexed2 = "test2" };
             var q = client.Upsert(model, a => a.CompositeIndex, "test1", "test2");
@@ -207,13 +219,14 @@ namespace FaunaDB.Client.LINQ.Tests
             Assert.IsTrue(JsonConvert.SerializeObject(lastQuery) == JsonConvert.SerializeObject(manual));
         }
 
-        [TestMethod]
+        [Test]
         public void UpsertBooleanExpressionTest()
         {
-            IsolationUtils.FakeClient<ReferenceModel>(UpsertBooleanExpressionTest_Run);
+            IsolationUtils.FakeAttributeClient<ReferenceModel>(UpsertBooleanExpressionTest_Run);
+            IsolationUtils.FakeManualClient<ReferenceModel>(UpsertBooleanExpressionTest_Run);
         }
 
-        private static void UpsertBooleanExpressionTest_Run(IFaunaClient client, ref Expr lastQuery)
+        private static void UpsertBooleanExpressionTest_Run(IDbContext client, ref Expr lastQuery)
         {
             var model = new ReferenceModel { Indexed1 = "test1", Indexed2 = "test2" };
             var q = client.Upsert(model, a => a.Indexed1 == "test1");

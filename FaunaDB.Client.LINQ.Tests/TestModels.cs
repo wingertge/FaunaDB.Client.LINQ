@@ -2,20 +2,18 @@
 using System.Collections.Generic;
 using FaunaDB.LINQ.Modeling;
 using FaunaDB.LINQ.Types;
-using FaunaDB.Types;
-using Newtonsoft.Json;
 
 namespace FaunaDB.Client.LINQ.Tests
 {
     public class ReferenceModel : IReferenceType
     {
-        [JsonProperty("ref")]
+        [Key]
         public string Id { get; set; }
         [Indexed("index_1")]
         public string Indexed1 { get; set; }
         [Indexed("index_2")]
         public string Indexed2 { get; set; }
-        [JsonProperty("ts")]
+        [Timestamp]
         public DateTime TimeStamp { get; set; }
 
         [Indexed("composite_index")]
@@ -28,7 +26,7 @@ namespace FaunaDB.Client.LINQ.Tests
 
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj)) return false;
+            if (obj is null) return false;
             if (ReferenceEquals(this, obj)) return true;
             return obj.GetType() == GetType() && Equals((ReferenceModel) obj);
         }
@@ -42,9 +40,21 @@ namespace FaunaDB.Client.LINQ.Tests
         }
     }
 
+    public class ReferenceModelMapping : FluentTypeConfiguration<ReferenceModel>
+    {
+        public ReferenceModelMapping()
+        {
+            this.HasKey(a => a.Id)
+                .HasIndex(a => a.Indexed1, "index_1")
+                .HasIndex(a => a.Indexed2, "index_2")
+                .HasTimestamp(a => a.TimeStamp)
+                .HasCompositeIndex(a => a.CompositeIndex, "composite_index");
+        }
+    }
+
     public class PrimitivesReferenceModel : IReferenceType
     {
-        [JsonProperty("ref")]
+        [Key]
         public string Id { get; set; }
         public string StringVal { get; set; }
         public int IntVal { get; set; }
@@ -101,9 +111,17 @@ namespace FaunaDB.Client.LINQ.Tests
         }
     }
 
+    public class PrimitivesReferenceModelMapping : FluentTypeConfiguration<PrimitivesReferenceModel>
+    {
+        public PrimitivesReferenceModelMapping()
+        {
+            HasKey(a => a.Id);
+        }
+    }
+
     public class ValueTypesReferenceModel : IReferenceType
     {
-        [JsonProperty("ref")]
+        [Key]
         public string Id { get; set; }
 
         public ValueModel ValueModel { get; set; }
@@ -111,9 +129,17 @@ namespace FaunaDB.Client.LINQ.Tests
         public ValueModel[] ValueModels2 { get; set; }
     }
 
+    public class ValueTypesReferenceModelMapping : FluentTypeConfiguration<ValueTypesReferenceModel>
+    {
+        public ValueTypesReferenceModelMapping()
+        {
+            HasKey(a => a.Id);
+        }
+    }
+
     public class ReferenceTypesReferenceModel : IReferenceType
     {
-        [JsonProperty("ref")]
+        [Key]
         public string Id { get; set; }
 
         [Reference]
@@ -122,6 +148,17 @@ namespace FaunaDB.Client.LINQ.Tests
         public List<ReferenceModel> ReferenceModels1 { get; set; }
         [Reference]
         public ReferenceModel[] ReferenceModels2 { get; set; }
+    }
+
+    public class ReferenceTypesReferenceModelMapping : FluentTypeConfiguration<ReferenceTypesReferenceModel>
+    {
+        public ReferenceTypesReferenceModelMapping()
+        {
+            this.HasKey(a => a.Id)
+                .HasReference(a => a.ReferenceModel)
+                .HasReference(a => a.ReferenceModels1)
+                .HasReference(a => a.ReferenceModels2);
+        }
     }
 
     public class ValueModel

@@ -5,6 +5,6 @@ namespace FaunaDB.LINQ.Client
 {
     public interface IFaunaClient
     {
-        Task<T> Query<T>(Expr query);
+        Task<RequestResult> Query(Expr query);
     }
 }

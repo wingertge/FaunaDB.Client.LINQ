@@ -23,9 +23,9 @@ namespace FaunaDB.LINQ.Query
         public Type ElementType { get; }
         public IQueryProvider Provider { get; }
 
-        public FaunaQueryableData(IFaunaClient client, object selector)
+        public FaunaQueryableData(IDbContext context, object selector)
         {
-            Provider = new FaunaQueryProvider(client, selector);
+            Provider = new FaunaQueryProvider(context, selector);
             Expression = Expression.Constant(this);
         }
 
@@ -37,7 +37,7 @@ namespace FaunaDB.LINQ.Query
     }
 
     public class FaunaQueryableData<TData, TCurrent> : FaunaQueryableData<TData>, IIncludeQuery<TData, TCurrent> {
-        public FaunaQueryableData(IFaunaClient client, Expr selector) : base(client, selector) { }
+        public FaunaQueryableData(IDbContext context, Expr selector) : base(context, selector) { }
 
         public FaunaQueryableData(IQueryProvider provider, Expression expression) : base(provider, expression) { }
     }

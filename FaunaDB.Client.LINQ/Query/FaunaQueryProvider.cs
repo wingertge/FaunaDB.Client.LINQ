@@ -9,12 +9,12 @@ namespace FaunaDB.LINQ.Query
 {
     public class FaunaQueryProvider : IQueryProvider
     {
-        private readonly IFaunaClient _client;
+        private readonly IDbContext _context;
         private readonly object _selector;
 
-        public FaunaQueryProvider(IFaunaClient client, object selector)
+        public FaunaQueryProvider(IDbContext context, object selector)
         {
-            _client = client;
+            _context = context;
             _selector = selector;
         }
 
@@ -43,12 +43,12 @@ namespace FaunaDB.LINQ.Query
 
         public TResult Execute<TResult>(Expression expression)
         {
-            return _client.Query<TResult>(FaunaQueryParser.Parse(_selector, expression)).Result;
+            return _context.Query<TResult>(FaunaQueryParser.Parse(_selector, expression, _context)).Result;
         }
 
         public Task<TResult> ExecuteAsync<TResult>(Expression expression)
         {
-            return _client.Query<TResult>(FaunaQueryParser.Parse(_selector, expression));
+            return _context.Query<TResult>(FaunaQueryParser.Parse(_selector, expression, _context));
         }
     }
 }

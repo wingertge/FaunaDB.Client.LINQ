@@ -3,6 +3,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using FaunaDB.LINQ.Modeling;
 using FaunaDB.LINQ.Query;
 using Newtonsoft.Json;
 
@@ -24,8 +25,7 @@ namespace FaunaDB.LINQ.Extensions
 
         internal static PropertyInfo GetPropertyInfo(this MemberExpression memberExp)
         {
-            var propInfo = memberExp.Member as PropertyInfo;
-            if (propInfo == null)
+            if (!(memberExp.Member is PropertyInfo propInfo))
                 throw new ArgumentException(
                     $"Member '{memberExp}' refers to a field, not a property.");
 
@@ -34,12 +34,7 @@ namespace FaunaDB.LINQ.Extensions
 
         internal static string GetFaunaFieldName(this PropertyInfo propInfo)
         {
-            var nameAttr = propInfo.GetCustomAttribute<JsonPropertyAttribute>();
-            var attrName = new[] { "ref", "ts" }.Contains(nameAttr?.PropertyName)
-                ? nameAttr?.PropertyName
-                : $"data.{nameAttr?.PropertyName}";
-            var propName = nameAttr != null ? attrName : $"data.{propInfo.Name.ToLowerUnderscored()}";
-            return propName;
+            return propInfo.Name.ToLowerUnderscored();
         }
 
         internal static string ToLowerUnderscored(this string s)
@@ -47,9 +42,16 @@ namespace FaunaDB.LINQ.Extensions
             return string.Concat(s.Select((x, i) => i > 0 && char.IsUpper(x) ? "_" + x.ToString() : x.ToString())).ToLower();
         }
 
-        internal static object[] GetFaunaFieldPath(this PropertyInfo propInfo)
+        internal static object[] GetFaunaFieldPath(this DbPropertyInfo propInfo)
         {
-            return GetFaunaFieldName(propInfo).Split('.').ToArray<object>();
+            return GetStringFieldPath(propInfo).Cast<object>().ToArray();
+        }
+
+        internal static string[] GetStringFieldPath(this DbPropertyInfo propInfo)
+        {
+            return propInfo.Type == DbPropertyType.Key || propInfo.Type == DbPropertyType.Timestamp
+                ? new [] { propInfo.Name }
+                : new [] { "data", propInfo.Name };
         }
 
         internal static object GetClassRef(this object obj)

@@ -1,16 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
-using FaunaDB.LINQ.Client;
+using FaunaDB.LINQ;
 using FaunaDB.LINQ.Extensions;
 using FaunaDB.LINQ.Query;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using NUnit.Framework;
+using NUnit.Framework.Internal;
 using static FaunaDB.Query.Language;
 
 namespace FaunaDB.Client.LINQ.Tests
 {
-    [TestClass]
+    [TestFixture]
     public class SerializationTests
     {
         public SerializationTests()
@@ -23,19 +24,31 @@ namespace FaunaDB.Client.LINQ.Tests
             };
         }
 
-        [TestMethod]
+        [Test]
         public void BasicReferenceTypeSerializationTest()
+        {
+            IsolationUtils.FakeAttributeClient(BasicReferenceTypeSerializationTest_Run);
+            IsolationUtils.FakeManualClient(BasicReferenceTypeSerializationTest_Run);
+        }
+
+        public void BasicReferenceTypeSerializationTest_Run(IDbContext context, ref Expr lastQuery)
         {
             var model = new ReferenceModel { Indexed1 = "test1", Indexed2 = "test2" }; // Indexed1: name attr "indexed1" | Indexed2: default name
 
             var manual = Obj("indexed1", "test1", "indexed2", "test2");
-            var auto = model.ToFaunaObj();
 
+            var auto = model.ToFaunaObj(context);
             Assert.IsTrue(JsonConvert.SerializeObject(manual) == JsonConvert.SerializeObject(auto));
         }
 
-        [TestMethod]
+        [Test]
         public void ReferenceTypeWithAllPrimitiveTypesTest()
+        {
+            IsolationUtils.FakeAttributeClient(ReferenceTypeWithAllPrimitiveTypesTest_Run);
+            IsolationUtils.FakeManualClient(ReferenceTypeWithAllPrimitiveTypesTest_Run);
+        }
+
+        public void ReferenceTypeWithAllPrimitiveTypesTest_Run(IDbContext context, ref Expr lastQuery)
         {
             var model = new PrimitivesReferenceModel
             {
@@ -74,13 +87,20 @@ namespace FaunaDB.Client.LINQ.Tests
             };
 
             var manual = Obj(dict);
-            var auto = model.ToFaunaObj();
+
+            var auto = model.ToFaunaObj(context);
 
             Assert.IsTrue(JsonConvert.SerializeObject(manual) == JsonConvert.SerializeObject(auto));
         }
 
-        [TestMethod]
+        [Test]
         public void ReferenceTypeWithValueTypesTest()
+        {
+            IsolationUtils.FakeAttributeClient(ReferenceTypeWithValueTypesTest_Run);
+            IsolationUtils.FakeManualClient(ReferenceTypeWithValueTypesTest_Run);
+        }
+
+        public void ReferenceTypeWithValueTypesTest_Run(IDbContext context, ref Expr lastQuery)
         {
             var model = new ValueTypesReferenceModel
             {
@@ -93,11 +113,17 @@ namespace FaunaDB.Client.LINQ.Tests
                 Arr(Obj("value1", "test3", "value2", "test4"), Obj("value1", "test5", "value2", "test6")),
                 "value_models2", Arr(Obj("value1", "test7", "value2", "test8"), Obj("value1", "test9", "value2", "test10")));
 
-            Assert.IsTrue(JsonConvert.SerializeObject(manual) == JsonConvert.SerializeObject(model.ToFaunaObj()));
+            Assert.IsTrue(JsonConvert.SerializeObject(manual) == JsonConvert.SerializeObject(model.ToFaunaObj(context)));         
         }
 
-        [TestMethod]
+        [Test]
         public void ReferenceTypeWithReferenceTypesTest()
+        {
+            IsolationUtils.FakeAttributeClient(ReferenceTypeWithReferenceTypesTest_Run);
+            IsolationUtils.FakeManualClient(ReferenceTypeWithReferenceTypesTest_Run);
+        }
+
+        public void ReferenceTypeWithReferenceTypesTest_Run(IDbContext context, ref Expr lastQuery)
         {
             var model = new ReferenceTypesReferenceModel
             {
@@ -110,27 +136,29 @@ namespace FaunaDB.Client.LINQ.Tests
                 "reference_models1", Arr(Ref("test3"), Ref("test5")),
                 "reference_models2", Arr(Ref("test7"), Ref("test9")));
 
-            Assert.IsTrue(JsonConvert.SerializeObject(manual) == JsonConvert.SerializeObject(model.ToFaunaObj()));
+            Assert.IsTrue(JsonConvert.SerializeObject(manual) == JsonConvert.SerializeObject(model.ToFaunaObj(context)));
         }
 
-        [TestMethod]
+        [Test]
         public void SimpleDecodeTest()
         {
-            var json = "{\"data\":{\"indexed1\":\"test1\",\"indexed2\":\"test2\"}}";
+            const string json = "{\"data\":{\"indexed1\":\"test1\",\"indexed2\":\"test2\"}}";
 
-            IsolationUtils.FakeClient<ReferenceModel>(SimpleDecodeTest_Run, json);
+            IsolationUtils.FakeAttributeClient<ReferenceModel>(SimpleDecodeTest_Run, json);
+            IsolationUtils.FakeManualClient<ReferenceModel>(SimpleDecodeTest_Run, json);
         }
 
-        private static void SimpleDecodeTest_Run(IFaunaClient client, ref Expr lastQuery)
+        public void SimpleDecodeTest_Run(IDbContext context, ref Expr lastQuery)
         {
+
             var model = new ReferenceModel { Indexed1 = "test1", Indexed2 = "test2" };
 
-            var result = client.Get<ReferenceModel>("testRef").Result;
+            var result = context.Get<ReferenceModel>("testRef").Result;
 
             Assert.AreEqual(model, result);
         }
 
-        [TestMethod]
+        [Test]
         public void ReferenceTypeWithAllPrimitivesDecodeTest()
         {
             var dict = new Dictionary<string, Query.Expr>
@@ -151,10 +179,11 @@ namespace FaunaDB.Client.LINQ.Tests
                 {"char_val", "a"},
             };
 
-            IsolationUtils.FakeClient<PrimitivesReferenceModel>(ReferenceTypeWithAllPrimitivesDecodeTest_Run, JsonConvert.SerializeObject(new { data = dict }));
+            IsolationUtils.FakeAttributeClient<PrimitivesReferenceModel>(ReferenceTypeWithAllPrimitivesDecodeTest_Run, JsonConvert.SerializeObject(new { data = dict }));
+            IsolationUtils.FakeManualClient<PrimitivesReferenceModel>(ReferenceTypeWithAllPrimitivesDecodeTest_Run, JsonConvert.SerializeObject(new { data = dict }));
         }
 
-        private static void ReferenceTypeWithAllPrimitivesDecodeTest_Run(IFaunaClient client, ref Expr lastQuery)
+        public void ReferenceTypeWithAllPrimitivesDecodeTest_Run(IDbContext context, ref Expr lastQuery)
         {
             var model = new PrimitivesReferenceModel
             {
@@ -174,7 +203,7 @@ namespace FaunaDB.Client.LINQ.Tests
                 StringVal = "test1"
             };
 
-            var result = client.Get<PrimitivesReferenceModel>("test1").Result;
+            var result = context.Get<PrimitivesReferenceModel>("test1").Result;
 
             Assert.AreEqual(model, result);
         }
