@@ -16,7 +16,7 @@ namespace FaunaDB.Client.LINQ.Tests
         {
             var clientMock = new Mock<IFaunaClient>();
             var baseContext = CreateAttributeContext(clientMock.Object);
-            var mock = new Mock<DbContext>(clientMock, baseContext.Mappings) {CallBase = true};
+            var mock = new Mock<DbContext>(clientMock.Object, baseContext.Mappings) {CallBase = true};
 
             Expr lastQuery = null;
             mock.Setup(a => a.Query<object>(It.IsAny<Expr>())).Returns((Expr q) =>
@@ -32,7 +32,7 @@ namespace FaunaDB.Client.LINQ.Tests
         {
             var clientMock = new Mock<IFaunaClient>();
             var baseContext = CreateMappingContext(clientMock.Object);
-            var mock = new Mock<DbContext>(clientMock, baseContext.Mappings) { CallBase = true };
+            var mock = new Mock<DbContext>(clientMock.Object, baseContext.Mappings) { CallBase = true };
 
             Expr lastQuery = null;
             mock.Setup(a => a.Query<object>(It.IsAny<Expr>())).Returns((Expr q) =>
@@ -48,7 +48,7 @@ namespace FaunaDB.Client.LINQ.Tests
         {
             var clientMock = new Mock<IFaunaClient>();
             var baseContext = CreateAttributeContext(clientMock.Object);
-            var mock = new Mock<DbContext>(clientMock, baseContext.Mappings) { CallBase = true };
+            var mock = new Mock<DbContext>(clientMock.Object, baseContext.Mappings) { CallBase = true };
 
             Expr lastQuery = null;
             mock.Setup(a => a.Query<T>(It.IsAny<Expr>())).Returns((Expr q) =>
@@ -64,7 +64,7 @@ namespace FaunaDB.Client.LINQ.Tests
         {
             var clientMock = new Mock<IFaunaClient>();
             var baseContext = CreateMappingContext(clientMock.Object);
-            var mock = new Mock<DbContext>(clientMock, baseContext.Mappings) { CallBase = true };
+            var mock = new Mock<DbContext>(clientMock.Object, baseContext.Mappings) { CallBase = true };
 
             Expr lastQuery = null;
             mock.Setup(a => a.Query<T>(It.IsAny<Expr>())).Returns((Expr q) =>
