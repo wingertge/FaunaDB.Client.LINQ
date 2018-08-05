@@ -27,7 +27,7 @@ install:
     dotnet restore
 
 nuget:
-  account_feed: true
+  account_feed: false
 build:
   verbosity: minimal
   publish_nuget: true
