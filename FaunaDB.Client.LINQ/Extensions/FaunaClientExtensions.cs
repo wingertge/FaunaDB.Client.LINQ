@@ -4,6 +4,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading.Tasks;
 using FaunaDB.LINQ.Errors;
+using FaunaDB.LINQ.Modeling;
 using FaunaDB.LINQ.Query;
 using FaunaDB.LINQ.Types;
 
@@ -95,9 +96,11 @@ namespace FaunaDB.LINQ.Extensions
             return context.Query<T>(Language.Create(obj.GetClassRef(), Language.Obj("data", obj.ToFaunaObj(context))));
         }
 
-        public static Task<T> Update<T>(this IDbContext context, T obj) where T : IReferenceType
+        public static Task<T> Update<T>(this IDbContext context, T obj)
         {
-            return context.Update(obj, obj.Id);
+            var mapping = context.Mappings[typeof(T)];
+            var id = mapping.FirstOrDefault(a => a.Value.Type == DbPropertyType.Key);
+            return context.Update(obj, id.Key.GetValue(obj).ToString());
         }
 
         public static Task<T> Update<T>(this IDbContext context, T obj, string id)
@@ -105,9 +108,11 @@ namespace FaunaDB.LINQ.Extensions
             return context.Query<T>(Language.Update(Language.Ref(id), obj.ToFaunaObj(context)));
         }
 
-        public static Task<T> Upsert<T>(this IDbContext context, T obj) where T : IReferenceType
+        public static Task<T> Upsert<T>(this IDbContext context, T obj)
         {
-            return context.Upsert(obj, obj.Id);
+            var mapping = context.Mappings[typeof(T)];
+            var id = mapping.FirstOrDefault(a => a.Value.Type == DbPropertyType.Key);
+            return context.Upsert(obj, id.Key.GetValue(obj).ToString());
         }
 
         public static Task<T> Upsert<T>(this IDbContext context, T obj, string id)
@@ -145,9 +150,11 @@ namespace FaunaDB.LINQ.Extensions
                 Language.Create(obj.GetClassRef(), obj.ToFaunaObj(context))));
         }
 
-        public static Task Delete(this IDbContext context, IReferenceType obj)
+        public static Task Delete(this IDbContext context, object obj)
         {
-            return context.Delete(obj.Id);
+            var mapping = context.Mappings[obj.GetType()];
+            var id = mapping.FirstOrDefault(a => a.Value.Type == DbPropertyType.Key);
+            return context.Delete(id.Key.GetValue(obj).ToString());
         }
 
         public static Task Delete(this IDbContext context, string id)

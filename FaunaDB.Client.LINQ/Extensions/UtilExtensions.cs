@@ -63,5 +63,12 @@ namespace FaunaDB.LINQ.Extensions
         {
             return (T) ((ConstantExpression) expression).Value;
         }
+
+        internal static bool IsReferenceType(this Type type, IDbContext context)
+        {
+            if (type.IsPrimitive || type == typeof(string)) return false;
+            var mapping = context.Mappings[type];
+            return mapping.Any(a => a.Value.Type == DbPropertyType.Key);
+        }
     }
 }

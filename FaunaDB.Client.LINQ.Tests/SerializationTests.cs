@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using FaunaDB.LINQ;
 using FaunaDB.LINQ.Extensions;
 using FaunaDB.LINQ.Query;
@@ -158,6 +159,7 @@ namespace FaunaDB.Client.LINQ.Tests
             Assert.AreEqual(model, result);
         }
 
+
         [Test]
         public void ReferenceTypeWithAllPrimitivesDecodeTest()
         {
@@ -179,8 +181,10 @@ namespace FaunaDB.Client.LINQ.Tests
                 {"char_val", "a"},
             };
 
-            IsolationUtils.FakeAttributeClient<PrimitivesReferenceModel>(ReferenceTypeWithAllPrimitivesDecodeTest_Run, JsonConvert.SerializeObject(new { data = dict }));
-            IsolationUtils.FakeManualClient<PrimitivesReferenceModel>(ReferenceTypeWithAllPrimitivesDecodeTest_Run, JsonConvert.SerializeObject(new { data = dict }));
+            var json = JsonConvert.SerializeObject(new {data = dict});
+
+            IsolationUtils.FakeAttributeClient<PrimitivesReferenceModel>(ReferenceTypeWithAllPrimitivesDecodeTest_Run, json);
+            IsolationUtils.FakeManualClient<PrimitivesReferenceModel>(ReferenceTypeWithAllPrimitivesDecodeTest_Run, json);
         }
 
         public void ReferenceTypeWithAllPrimitivesDecodeTest_Run(IDbContext context, ref Expr lastQuery)

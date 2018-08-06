@@ -103,7 +103,8 @@ namespace FaunaDB.LINQ.Extensions
                 {
                     if (typeof(IEnumerable).IsAssignableFrom(prop.PropertyType))
                     {
-                        if (typeof(IReferenceType).IsAssignableFrom(prop.PropertyType.GetElementType()))
+                        var mapping = context.Mappings[prop.PropertyType.GetElementType() ?? throw new InvalidMappingException("Trying to decode unregistered type.")];
+                        if (mapping.Any(a => a.Value.Type == DbPropertyType.Key))
                         {
                             var enumerable = current.ToObject<IEnumerable<JObject>>();
                             var result = enumerable.Select(item => Decode(item, prop.PropertyType.GetElementType(), context))

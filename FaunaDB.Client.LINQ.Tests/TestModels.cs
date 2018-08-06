@@ -5,7 +5,7 @@ using FaunaDB.LINQ.Types;
 
 namespace FaunaDB.Client.LINQ.Tests
 {
-    public class ReferenceModel : IReferenceType
+    public class ReferenceModel
     {
         [Key]
         public string Id { get; set; }
@@ -52,7 +52,7 @@ namespace FaunaDB.Client.LINQ.Tests
         }
     }
 
-    public class PrimitivesReferenceModel : IReferenceType
+    public class PrimitivesReferenceModel
     {
         [Key]
         public string Id { get; set; }
@@ -119,7 +119,7 @@ namespace FaunaDB.Client.LINQ.Tests
         }
     }
 
-    public class ValueTypesReferenceModel : IReferenceType
+    public class ValueTypesReferenceModel
     {
         [Key]
         public string Id { get; set; }
@@ -137,7 +137,7 @@ namespace FaunaDB.Client.LINQ.Tests
         }
     }
 
-    public class ReferenceTypesReferenceModel : IReferenceType
+    public class ReferenceTypesReferenceModel
     {
         [Key]
         public string Id { get; set; }

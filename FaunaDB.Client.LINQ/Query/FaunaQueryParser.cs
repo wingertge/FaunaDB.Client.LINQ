@@ -265,7 +265,7 @@ namespace FaunaDB.LINQ.Query
                                         case FieldInfo _:
                                             return WalkComplexExpression(memberRoot, varName, context);
                                         case PropertyInfo prop:
-                                            return typeof(IReferenceType).IsAssignableFrom(prop.PropertyType)
+                                            return prop.PropertyType.IsReferenceType(context)
                                                 ? Language.Map(
                                                     Language.Select(mapping.GetFaunaFieldPath(),
                                                         WalkComplexExpression(memberRoot, varName, context)),
